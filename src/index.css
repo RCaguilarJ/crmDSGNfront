@@ -1,0 +1,66 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+@layer utilities {
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes scaleUp {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .animate-scale-up {
+    animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .crm-progress {
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .crm-progress::-webkit-slider-runnable-track {
+    height: 3px;
+    border-radius: 9999px;
+    background: #cfd8e3;
+  }
+
+  .crm-progress::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    margin-top: -6.5px;
+    border: 0;
+    border-radius: 9999px;
+    background: #2563eb;
+    box-shadow: 0 0 0 3px #ffffff;
+  }
+
+  .crm-progress::-moz-range-track {
+    height: 3px;
+    border: 0;
+    border-radius: 9999px;
+    background: #cfd8e3;
+  }
+
+  .crm-progress::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border: 0;
+    border-radius: 9999px;
+    background: #2563eb;
+    box-shadow: 0 0 0 3px #ffffff;
+  }
+}

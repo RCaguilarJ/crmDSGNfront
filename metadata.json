@@ -1,0 +1,6 @@
+{
+  "name": "Design System Hub",
+  "description": "A high-fidelity Figma-to-Code workspace and component library explorer built in React and Tailwind CSS with authentication and project persistence.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
