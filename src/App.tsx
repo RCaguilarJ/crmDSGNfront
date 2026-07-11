@@ -39,12 +39,11 @@ import {
 } from "lucide-react";
 
 // Import types
-import type { Client } from "./components/CRMClients";
+import type { Client, User } from "./types";
 import type { DesignProject } from "./components/CRMProjects";
 import type { WebProject } from "./components/CRMWebProjects";
 import type { Task } from "./components/CRMTasks";
 import type { Invoice } from "./components/CRMBilling";
-import { User } from "./types";
 import { apiFetch } from "./lib/api";
 
 // Lazy-loaded components for optimal initial loading
@@ -430,6 +429,7 @@ export default function App() {
   // Sync projects from database
   useEffect(() => {
     if (currentUser) {
+      fetchClientsFromDatabase();
       fetchProjectsFromDatabase();
       fetchWebProjectsFromDatabase();
     }
@@ -478,6 +478,21 @@ export default function App() {
       }
     } catch (e) {
       console.error("Error fetching projects", e);
+    }
+  };
+
+  const fetchClientsFromDatabase = async () => {
+    if (!sessionId) return;
+    try {
+      const data = await apiFetch<{ clients?: Client[] }>("/api/clients", {
+        headers: { Authorization: `Bearer ${sessionId}` }
+      });
+
+      if (data.clients) {
+        setClients(data.clients);
+      }
+    } catch (e) {
+      console.error("Error fetching clients", e);
     }
   };
 
@@ -609,6 +624,18 @@ export default function App() {
 
   const handleDeleteClient = (id: string) => {
     setClients(prev => prev.filter(c => c.id !== id));
+  };
+
+  const handleUpsertClient = (client: Client) => {
+    setClients(prev => {
+      const existingIndex = prev.findIndex(item => item.id === client.id);
+
+      if (existingIndex === -1) {
+        return [client, ...prev];
+      }
+
+      return prev.map(item => item.id === client.id ? client : item);
+    });
   };
 
   const handleUpdateClientStatus = (id: string, status: Client["status"]) => {
@@ -1192,7 +1219,10 @@ export default function App() {
               activeView === "quotes" ||
               activeView === "tasks" ||
               activeView === "staff" ||
-              activeView === "credentials"
+              activeView === "credentials" ||
+              activeView === "reports" ||
+              activeView === "users" ||
+              activeView === "settings"
                 ? "max-w-none"
                 : activeView === "projects" || activeView === "projects_web" || activeView === "kanban"
                   ? "max-w-none"
@@ -1275,9 +1305,9 @@ export default function App() {
                 {activeView === "clients" && (
                   <CRMClients 
                     clients={clients} 
-                    onAddClient={handleAddClient} 
+                    onClientsLoaded={setClients}
+                    onClientSaved={handleUpsertClient}
                     onDeleteClient={handleDeleteClient} 
-                    onUpdateClientStatus={handleUpdateClientStatus} 
                   />
                 )}
                 {activeView === "leads" && (

@@ -1,3 +1,25 @@
+export type ClientStatus = "Activo" | "PrÃ³ximo a vencer" | "Vencido" | "Suspendido";
+export type InvoiceStatus = "Pagado" | "Pendiente" | "Vencido";
+export type TaskPriority = "Baja" | "Media" | "Alta";
+export type TaskColumn = "Backlog" | "DiseÃ±o" | "Desarrollo" | "QA" | "Entregado";
+
+export interface Client {
+  id: string;
+  companyName: string;
+  contactName: string;
+  email: string;
+  phone: string | null;
+  status: ClientStatus;
+  services: number;
+  responsible: string | null;
+  nextRenewal: string | null;
+  avatarInitials: string;
+  avatarBg: string;
+  createdAt?: string;
+}
+
+export type ClientDraft = Omit<Client, "id" | "createdAt">;
+
 export interface SavedProject {
   id: string;
   name: string;
@@ -6,6 +28,29 @@ export interface SavedProject {
   tailwindClasses?: string;
   componentCode?: string;
   createdAt: string;
+}
+
+export type SavedProjectDraft = Omit<SavedProject, "id" | "createdAt">;
+
+export interface TaskRecord {
+  id: string;
+  title: string;
+  description: string;
+  columnName: TaskColumn;
+  priority: TaskPriority;
+  projectName: string | null;
+  assignee: string | null;
+  createdAt?: string;
+}
+
+export interface InvoiceRecord {
+  id: string;
+  clientName: string;
+  amount: number;
+  status: InvoiceStatus;
+  dueDate: string;
+  description: string;
+  createdAt?: string;
 }
 
 export interface User {

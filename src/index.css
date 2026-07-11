@@ -25,6 +25,32 @@
     animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
+  @keyframes chartRevealX {
+    from { clip-path: inset(0 100% 0 0); }
+    to { clip-path: inset(0 0 0 0); }
+  }
+
+  @keyframes chartRevealClockwise {
+    from { clip-path: polygon(50% 50%, 50% 0, 50% 0, 50% 0, 50% 0, 50% 0, 50% 0); }
+    25% { clip-path: polygon(50% 50%, 50% 0, 100% 0, 100% 50%, 100% 50%, 100% 50%, 100% 50%); }
+    50% { clip-path: polygon(50% 50%, 50% 0, 100% 0, 100% 100%, 50% 100%, 50% 100%, 50% 100%); }
+    75% { clip-path: polygon(50% 50%, 50% 0, 100% 0, 100% 100%, 0 100%, 0 50%, 0 50%); }
+    to { clip-path: polygon(50% 50%, 50% 0, 100% 0, 100% 100%, 0 100%, 0 0, 50% 0); }
+  }
+
+  @keyframes chartBarGrow {
+    from { transform: scaleY(0); opacity: 0; }
+    to { transform: scaleY(1); opacity: 1; }
+  }
+
+  .animate-chart-x { animation: chartRevealX 1.15s cubic-bezier(.22, 1, .36, 1) both; }
+  .animate-chart-pie { animation: chartRevealClockwise 1s cubic-bezier(.22, 1, .36, 1) .18s both; }
+  .animate-chart-bar { transform-origin: bottom; animation: chartBarGrow .65s cubic-bezier(.22, 1, .36, 1) both; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-chart-x, .animate-chart-pie, .animate-chart-bar { animation: none; }
+  }
+
   .crm-progress {
     appearance: none;
     background: transparent;
