@@ -10,6 +10,7 @@ import {
   Trash2,
   X
 } from "lucide-react";
+import { useServerCollection } from "../lib/useServerCollection";
 
 export interface CredentialItem {
   id: string;
@@ -35,68 +36,9 @@ type CredentialFormState = {
   status: CredentialItem["status"];
 };
 
-const DEFAULT_CREDENTIALS: CredentialItem[] = [
-  {
-    id: "cred_1",
-    clientName: "Constructora Murillo",
-    projectName: "Hosting cPanel",
-    type: "Hosting",
-    url: "https://server42.host/cpanel",
-    username: "murillo_hosting",
-    passwordText: "Cx9#mR2!pQ",
-    updatedAt: "2025-01-05",
-    responsible: "Carlos",
-    status: "Activo"
-  },
-  {
-    id: "cred_2",
-    clientName: "Farmacia San Pablo del Norte",
-    projectName: "WordPress Admin",
-    type: "CMS",
-    url: "https://farmsanpablo.mx/wp-admin",
-    username: "admin_fsp",
-    passwordText: "Wp$4nP@bL0",
-    updatedAt: "2024-12-20",
-    responsible: "Sofía",
-    status: "Activo"
-  },
-  {
-    id: "cred_3",
-    clientName: "Grupo Inmobiliario Arenas",
-    projectName: "Servidor VPS",
-    type: "SSH/VPS",
-    url: "ssh://185.204.12.88",
-    username: "root_arenas",
-    passwordText: "sHd@45!VpX",
-    updatedAt: "2025-01-08",
-    responsible: "Marco",
-    status: "Activo"
-  },
-  {
-    id: "cred_4",
-    clientName: "Hotel Boutique Riviera",
-    projectName: "Panel de reservas",
-    type: "Sistema",
-    url: "https://admin.riviera-booking.com",
-    username: "hbrm_admin",
-    passwordText: "RvAdmin#2025",
-    updatedAt: "2024-12-28",
-    responsible: "Marco",
-    status: "Activo"
-  },
-  {
-    id: "cred_5",
-    clientName: "Clínica Médica del Valle",
-    projectName: "Hosting + correos",
-    type: "Hosting",
-    url: "https://server18.mailhost.mx",
-    username: "clinica_del_valle",
-    passwordText: "Cmv!Host88",
-    updatedAt: "2025-01-02",
-    responsible: "Luis",
-    status: "Activo"
-  }
-];
+// Credentials must only come from the authenticated backend; never ship secrets
+// as fallback data in the public JavaScript bundle.
+const DEFAULT_CREDENTIALS: CredentialItem[] = [];
 
 const defaultFormState: CredentialFormState = {
   clientName: "",
@@ -143,44 +85,7 @@ export default function CRMCredentials() {
   const [addForm, setAddForm] = useState<CredentialFormState>(defaultFormState);
   const [editForm, setEditForm] = useState<CredentialFormState>(defaultFormState);
 
-  const [credentials, setCredentials] = useState<CredentialItem[]>(() => {
-    const cached = localStorage.getItem("crm_credentials");
-
-    if (!cached) return DEFAULT_CREDENTIALS;
-
-    try {
-      const parsed = JSON.parse(cached);
-      if (!Array.isArray(parsed)) return DEFAULT_CREDENTIALS;
-
-      return parsed.map((item, index) => {
-        const candidate = item as Partial<CredentialItem> & {
-          serviceName?: string;
-          notes?: string;
-        };
-
-        return {
-          id: candidate.id || `cred_${Date.now()}_${index}`,
-          clientName: normalizeText(candidate.clientName || "Cliente"),
-          projectName: normalizeText(candidate.projectName || candidate.serviceName || "Proyecto"),
-          type:
-            candidate.type === "Hosting" ||
-            candidate.type === "CMS" ||
-            candidate.type === "SSH/VPS" ||
-            candidate.type === "Sistema"
-              ? candidate.type
-              : "Hosting",
-          url: normalizeText(candidate.url || ""),
-          username: normalizeText(candidate.username || "admin"),
-          passwordText: normalizeText(candidate.passwordText || ""),
-          updatedAt: candidate.updatedAt || "2025-01-01",
-          responsible: normalizeText(candidate.responsible || ["Carlos", "Sofía", "Marco", "Luis"][index % 4]),
-          status: candidate.status === "Inactivo" ? "Inactivo" : "Activo"
-        };
-      });
-    } catch {
-      return DEFAULT_CREDENTIALS;
-    }
-  });
+  const [credentials, setCredentials] = useServerCollection<CredentialItem>("credentials", "crm_credentials", DEFAULT_CREDENTIALS);
 
   const clientOptions = useMemo(
     () =>
@@ -211,7 +116,6 @@ export default function CRMCredentials() {
 
   const saveCredentials = (updated: CredentialItem[]) => {
     setCredentials(updated);
-    localStorage.setItem("crm_credentials", JSON.stringify(updated));
   };
 
   const handleCopy = async (id: string, value: string) => {

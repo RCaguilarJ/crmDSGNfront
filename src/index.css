@@ -6,6 +6,150 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
+/* Shared responsive contract for every CRM view. */
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+img,
+video,
+canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+input,
+select,
+textarea,
+button {
+  max-width: 100%;
+}
+
+.crm-main,
+.crm-content,
+.crm-content > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.crm-content :where(input, select, textarea) {
+  min-width: 0;
+}
+
+.crm-content :where(table) {
+  border-collapse: collapse;
+}
+
+@media (max-width: 1023px) {
+  .crm-content :where(table) {
+    min-width: 720px;
+  }
+
+  .crm-content :where(.overflow-x-auto) {
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 767px) {
+  .crm-auth :where(input, select, textarea),
+  .crm-content :where(input, select, textarea) {
+    font-size: max(16px, 1em);
+  }
+
+  .crm-main {
+    min-height: calc(100dvh - 61px);
+  }
+
+  .crm-content {
+    width: 100%;
+    overflow-x: clip;
+  }
+
+  .crm-content :where(.p-8, .p-6) {
+    padding: 1rem;
+  }
+
+  .crm-content :where(.px-8, .px-6) {
+    padding-inline: 1rem;
+  }
+
+  .crm-content :where(.py-8) {
+    padding-block: 1rem;
+  }
+
+  .crm-content :where([class~="fixed"][class~="inset-0"]) {
+    align-items: flex-start;
+    overflow-y: auto;
+    padding: 0.75rem;
+  }
+
+  .crm-content :where([class~="fixed"][class~="inset-0"]) > :where(div, form, section) {
+    max-height: calc(100dvh - 1.5rem);
+    overflow-y: auto;
+    border-radius: 1rem;
+  }
+
+  .crm-content :where(form) :where(.grid-cols-2, .grid-cols-3, .grid-cols-4) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .crm-content :where(form) :where(.col-span-2, .col-span-3, .col-span-4) {
+    grid-column: auto;
+  }
+
+  .crm-content :where(form) :where(input, select, textarea) {
+    width: 100%;
+  }
+
+  .crm-content :where(form) :where(button) {
+    min-height: 44px;
+  }
+
+  .crm-content :where(table) {
+    min-width: 680px;
+  }
+
+  .crm-content :where(th, td) {
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 479px) {
+  .crm-auth-card .grid-cols-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .crm-content :where(h1) {
+    overflow-wrap: anywhere;
+  }
+
+  .crm-content :where(.rounded-3xl) {
+    border-radius: 1rem;
+  }
+
+  .crm-content :where(form) > :where(.flex):last-child {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .crm-content :where(form) > :where(.flex):last-child button {
+    width: 100%;
+  }
+}
+
 @layer utilities {
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(6px); }

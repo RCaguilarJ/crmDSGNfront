@@ -35,7 +35,7 @@ function LineChart({ data }: { data: ReportData["monthlyIncome"] }) {
 
 export default function CRMReports() {
   const [report, setReport] = useState<ReportData>(fallback);
-  useEffect(() => { apiFetch<ReportData>("/api/reports/summary", { headers: { Authorization: `Bearer ${localStorage.getItem("figma_session") || ""}` } }).then(setReport).catch(()=>{}); }, []);
+  useEffect(() => { apiFetch<ReportData>("/api/reports/summary").then(setReport).catch(()=>{}); }, []);
   const gradient = useMemo(() => { let cursor=0; return `conic-gradient(${report.services.map(s=>{const start=cursor;cursor+=s.value;return `${s.color} ${start}% ${cursor}%`}).join(",")})`; }, [report.services]);
   const maxManager = Math.max(120000, ...report.managers.map(x=>x.value));
   return <div className="-mt-1 space-y-4 text-left animate-fade-in">

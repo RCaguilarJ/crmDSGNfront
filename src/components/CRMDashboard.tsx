@@ -36,7 +36,7 @@ interface CRMDashboardProps {
     clientName: string;
     status: string;
     dueDate: string;
-    budget: string;
+    budget: string | number;
   }>;
   onNavigateToView: (view: string) => void;
 }

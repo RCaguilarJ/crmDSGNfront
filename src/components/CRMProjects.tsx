@@ -237,7 +237,11 @@ export default function CustomCard() {
             try {
               ReactDOM.createRoot(document.getElementById("root")).render(<App />);
             } catch (err) {
-              document.getElementById("root").innerHTML = '<div class="p-6 bg-red-950/20 text-red-400 font-mono text-xs border border-red-900 rounded-xl">Error: ' + err.message + "</div>";
+              const root = document.getElementById("root");
+              const message = document.createElement("div");
+              message.className = "p-6 bg-red-950/20 text-red-400 font-mono text-xs border border-red-900 rounded-xl";
+              message.textContent = "Error: " + String(err.message || "Error desconocido");
+              root.replaceChildren(message);
             }
           </script>
         </body>

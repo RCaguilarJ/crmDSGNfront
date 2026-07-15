@@ -9,6 +9,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { useServerCollection } from "../lib/useServerCollection";
 
 export interface RenewalItem {
   id: string;
@@ -176,14 +177,10 @@ export default function CRMRenewals() {
   const [newExpiry, setNewExpiry] = useState("");
   const [newNotes, setNewNotes] = useState("");
 
-  const [renewals, setRenewals] = useState<RenewalItem[]>(() => {
-    const cached = localStorage.getItem("crm_renewals");
-    return cached ? JSON.parse(cached) : DEFAULT_RENEWALS;
-  });
+  const [renewals, setRenewals] = useServerCollection<RenewalItem>("renewals", "crm_renewals", DEFAULT_RENEWALS);
 
   const saveRenewals = (updated: RenewalItem[]) => {
     setRenewals(updated);
-    localStorage.setItem("crm_renewals", JSON.stringify(updated));
   };
 
   const handleAddRenewal = (e: React.FormEvent) => {
@@ -226,7 +223,7 @@ export default function CRMRenewals() {
   };
 
   const handleTogglePaid = (id: string) => {
-    const updated = renewals.map((item) => {
+    const updated: RenewalItem[] = renewals.map((item) => {
       if (item.id !== id) return item;
 
       if (item.status === "Paid") {

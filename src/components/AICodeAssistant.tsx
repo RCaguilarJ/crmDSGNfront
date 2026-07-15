@@ -194,7 +194,7 @@ export default function AICodeAssistant({ onSaveToDatabase, isLoggedIn, activeCo
                   useEffect(() => {
                     if (elRef.current) {
                       // Empty and reconstruct
-                      elRef.current.innerHTML = '';
+                      elRef.current.replaceChildren();
                       const iconName = prop.replace(/([A-Z])/g, "-$1").toLowerCase().replace(/^-/, "");
                       const icon = LucideIcons[prop] || LucideIcons.Activity;
                       if (icon) {
@@ -227,7 +227,11 @@ export default function AICodeAssistant({ onSaveToDatabase, isLoggedIn, activeCo
             try {
               ReactDOM.createRoot(document.getElementById('root')).render(<App />);
             } catch (err) {
-              document.getElementById('root').innerHTML = '<div class="p-6 bg-red-950/20 text-red-400 font-mono text-xs border border-red-900 rounded-xl">Error de renderizado: ' + err.message + '</div>';
+              const root = document.getElementById('root');
+              const message = document.createElement('div');
+              message.className = 'p-6 bg-red-950/20 text-red-400 font-mono text-xs border border-red-900 rounded-xl';
+              message.textContent = 'Error de renderizado: ' + String(err.message || 'Error desconocido');
+              root.replaceChildren(message);
             }
           </script>
         </body>

@@ -12,6 +12,7 @@ import {
   Send,
   FileSpreadsheet
 } from "lucide-react";
+import { useServerCollection } from "../lib/useServerCollection";
 
 export interface QuoteItem {
   id: string;
@@ -40,21 +41,17 @@ export default function CRMQuotes() {
     { desc: "Diseño UI/UX en Figma", qty: 1, unitPrice: 15000 }
   ]);
 
-  const [quotes, setQuotes] = useState<QuoteItem[]>(() => {
-    const cached = localStorage.getItem("crm_quotes");
-    return cached ? JSON.parse(cached) : [
+  const [quotes, setQuotes] = useServerCollection<QuoteItem>("quotes", "crm_quotes", [
       { id: "q_1", quoteNumber: "COT-2026-001", clientName: "Distribuidora Central", projectName: "Desarrollo E-commerce con ERP", amount: 45000, date: "2025-01-08", expiryDate: "2025-01-23", status: "Enviada", responsable: "Daniela", items: [{ desc: "Desarrollo Frontend + Integración ERP", qty: 1, unitPrice: 45000 }] },
       { id: "q_2", quoteNumber: "COT-2026-002", clientName: "Constructora Pedraza", projectName: "Portal inmobiliario + módulo CRM", amount: 95000, date: "2025-01-05", expiryDate: "2025-01-20", status: "Enviada", responsable: "Carlos", items: [{ desc: "Portal inmobiliario completo", qty: 1, unitPrice: 95000 }] },
       { id: "q_3", quoteNumber: "COT-2026-003", clientName: "Escuela Montessori", projectName: "LMS + sitio web institucional", amount: 38000, date: "2025-01-04", expiryDate: "2025-01-19", status: "Borrador", responsable: "Sofia", items: [{ desc: "LMS y sitio institucional", qty: 1, unitPrice: 38000 }] },
       { id: "q_4", quoteNumber: "COT-2026-004", clientName: "Bufete Garza", projectName: "Sitio corporativo + SEO 6 meses", amount: 22000, date: "2024-12-20", expiryDate: "2025-01-04", status: "Aceptada", responsable: "Daniela", items: [{ desc: "Sitio corporativo + SEO", qty: 1, unitPrice: 22000 }] },
       { id: "q_5", quoteNumber: "COT-2026-005", clientName: "Restaurante La", projectName: "Landing page + redes sociales", amount: 8500, date: "2024-12-10", expiryDate: "2024-12-25", status: "Rechazada", responsable: "Daniela", items: [{ desc: "Landing + gestión redes", qty: 1, unitPrice: 8500 }] },
       { id: "q_6", quoteNumber: "COT-2026-006", clientName: "AutoPartes del", projectName: "E-commerce catálogo automotriz", amount: 55000, date: "2025-01-14", expiryDate: "2025-01-29", status: "Enviada", responsable: "Carlos", items: [{ desc: "E-commerce con catálogo y pasarela", qty: 1, unitPrice: 55000 }] }
-    ];
-  });
+    ]);
 
   const saveQuotes = (updated: QuoteItem[]) => {
     setQuotes(updated);
-    localStorage.setItem("crm_quotes", JSON.stringify(updated));
   };
 
   const handleAddItemRow = () => {
@@ -142,7 +139,7 @@ export default function CRMQuotes() {
   });
 
   return (
-    <div className="w-full min-h-screen px-6 lg:px-10 space-y-6 animate-fade-in text-left font-sans">
+    <div className="w-full min-h-screen px-0 sm:px-2 lg:px-4 space-y-6 animate-fade-in text-left font-sans">
       
       {/* Top Title and Actions */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

@@ -74,13 +74,25 @@ function buildApiUrl(input: string) {
   return `${apiBaseUrl}${normalizedPath}`;
 }
 
-function getStoredSession() {
+export function getStoredSession() {
   if (typeof window === "undefined") {
     return null;
   }
-
-  return window.localStorage.getItem("figma_session");
+  return window.sessionStorage.getItem("figma_session");
 }
+
+export function storeSession(token: string) {
+  if (typeof window !== "undefined") window.sessionStorage.setItem("figma_session", token);
+}
+
+export function clearStoredSession() {
+  if (typeof window !== "undefined") {
+    window.sessionStorage.removeItem("figma_session");
+    window.localStorage.removeItem("figma_session");
+  }
+}
+
+// Refresh tokens are stored in HttpOnly cookies set by the backend; do not persist them in JS
 
 async function parseJsonSafely(response: Response) {
   const rawText = await response.text();
@@ -117,10 +129,11 @@ function getErrorMessage(response: Response, payload: unknown) {
 }
 
 function buildRequestInit(method: HttpMethod, options: ApiRequestOptions = {}): RequestInit {
-  const headers = new Headers(options.headers);
-  const token = options.token ?? (options.auth ? getStoredSession() : null);
+  const { auth, body, token: suppliedToken, ...requestOptions } = options;
+  const headers = new Headers(requestOptions.headers);
+  const token = suppliedToken ?? (auth ? getStoredSession() : null);
   const init: RequestInit = {
-    ...options,
+    ...requestOptions,
     method,
     headers,
     credentials: "include",
@@ -130,14 +143,14 @@ function buildRequestInit(method: HttpMethod, options: ApiRequestOptions = {}): 
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  if (options.body !== undefined && options.body !== null) {
-    const isBodyInit = options.body instanceof FormData || typeof options.body === "string" || options.body instanceof URLSearchParams;
+  if (body !== undefined && body !== null) {
+    const isBodyInit = body instanceof FormData || typeof body === "string" || body instanceof URLSearchParams;
 
     if (isBodyInit) {
-      init.body = options.body;
+      init.body = body;
     } else {
       headers.set("Content-Type", "application/json");
-      init.body = JSON.stringify(options.body);
+      init.body = JSON.stringify(body);
     }
   }
 
@@ -145,11 +158,46 @@ function buildRequestInit(method: HttpMethod, options: ApiRequestOptions = {}): 
 }
 
 async function request<T>(method: HttpMethod, input: string, options?: ApiRequestOptions) {
-  const response = await fetch(buildApiUrl(input), buildRequestInit(method, options));
-  const payload = await parseJsonSafely(response);
+  const makeFetch = (tokenToUse?: string | null) => fetch(buildApiUrl(input), buildRequestInit(method, { ...options, token: tokenToUse }));
+
+  let response = await makeFetch(options?.token ?? (options?.auth ? getStoredSession() : null));
+  let payload = await parseJsonSafely(response);
+
+  // If unauthorized, try refresh endpoint (backend will read refresh token from cookie)
+  if (response.status === 401) {
+    try {
+      const refreshRes = await fetch(buildApiUrl("/api/auth/refresh"), buildRequestInit("POST", {}));
+      const refreshPayload = await parseJsonSafely(refreshRes);
+      if (refreshRes.ok && refreshPayload && typeof refreshPayload === "object") {
+        const newAccess = (refreshPayload as any).sessionId;
+        if (newAccess) {
+          // save new access token
+          storeSession(newAccess);
+          // retry original request with new access token
+          response = await makeFetch(newAccess);
+          payload = await parseJsonSafely(response);
+        }
+      }
+    } catch (e) {
+      // fallthrough to throwing below
+    }
+  }
 
   if (!response.ok) {
     throw new Error(getErrorMessage(response, payload));
+  }
+
+  // If this is an auth response with tokens, persist access token; refresh token is in cookie
+  try {
+    const urlPath = input.toString();
+    if (payload && typeof payload === 'object' && (urlPath.includes('/api/auth/login') || urlPath.includes('/api/auth/signup') || urlPath.includes('/api/auth/refresh'))) {
+      const anyPayload = payload as any;
+      if (anyPayload.sessionId && typeof window !== 'undefined') {
+        storeSession(anyPayload.sessionId);
+      }
+    }
+  } catch (e) {
+    // ignore
   }
 
   return payload as T;
@@ -157,7 +205,8 @@ async function request<T>(method: HttpMethod, input: string, options?: ApiReques
 
 export function apiFetch<T>(input: string, init?: RequestInit) {
   const method = ((init?.method || "GET").toUpperCase() as HttpMethod);
-  return request<T>(method, input, init);
+  const needsAuth = input.startsWith("/api/") && !input.startsWith("/api/auth/") && input !== "/api/generate-component";
+  return request<T>(method, input, { ...init, auth: needsAuth });
 }
 
 export const api = {

@@ -44,7 +44,7 @@ import type { DesignProject } from "./components/CRMProjects";
 import type { WebProject } from "./components/CRMWebProjects";
 import type { Task } from "./components/CRMTasks";
 import type { Invoice } from "./components/CRMBilling";
-import { apiFetch } from "./lib/api";
+import { apiFetch, clearStoredSession, getStoredSession, storeSession } from "./lib/api";
 
 // Lazy-loaded components for optimal initial loading
 const CRMDashboard = lazy(() => import("./components/CRMDashboard"));
@@ -65,6 +65,62 @@ const CRMReports = lazy(() => import("./components/CRMReports"));
 const CRMUsers = lazy(() => import("./components/CRMUsers"));
 const CRMSettings = lazy(() => import("./components/CRMSettings"));
 
+type RoleKey = "admin_general" | "administracion" | "gerente_dev" | "gerente_web";
+
+const ROLE_KEY_BY_NAME: Record<string, RoleKey> = {
+  admin_general: "admin_general",
+  "Admin General": "admin_general",
+  administracion: "administracion",
+  "Administración": "administracion",
+  gerente_dev: "gerente_dev",
+  "Gerente Dev": "gerente_dev",
+  gerente_web: "gerente_web",
+  "Gerente Web": "gerente_web",
+};
+
+const VIEW_PERMISSIONS: Record<string, RoleKey[]> = {
+  dashboard: ["admin_general", "administracion", "gerente_dev", "gerente_web"],
+  clients: ["admin_general", "administracion", "gerente_dev", "gerente_web"],
+  leads: ["admin_general", "administracion"],
+  services: ["admin_general", "administracion"],
+  billing: ["admin_general", "administracion"],
+  renewals: ["admin_general", "administracion"],
+  quotes: ["admin_general", "administracion", "gerente_dev", "gerente_web"],
+  projects: ["admin_general", "administracion", "gerente_dev"],
+  projects_web: ["admin_general", "gerente_web"],
+  kanban: ["admin_general", "administracion", "gerente_dev", "gerente_web"],
+  tasks: ["admin_general", "administracion", "gerente_dev", "gerente_web"],
+  staff: ["admin_general", "gerente_dev", "gerente_web"],
+  credentials: ["admin_general"],
+  reports: ["admin_general", "administracion"],
+  users: ["admin_general"],
+  settings: ["admin_general"],
+};
+
+const NAV_ITEMS = [
+  { id: "dashboard", label: "Dashboard", icon: LayoutGrid },
+  { id: "clients", label: "Clientes", icon: Users },
+  { id: "leads", label: "Prospectos", icon: UserPlus },
+  { id: "services", label: "Servicios", icon: Layers },
+  { id: "billing", label: "Pagos", icon: DollarSign },
+  { id: "renewals", label: "Renovaciones", icon: RefreshCw },
+  { id: "quotes", label: "Cotizaciones", icon: FileText },
+  { id: "projects", label: "Proyectos Dev", icon: Code2 },
+  { id: "projects_web", label: "Proyectos Web", icon: Globe },
+  { id: "kanban", label: "Kanban", icon: Trello },
+  { id: "tasks", label: "Tareas", icon: CheckSquare },
+  { id: "staff", label: "Personal", icon: Briefcase },
+  { id: "credentials", label: "Credenciales", icon: Key },
+  { id: "reports", label: "Reportes", icon: BarChart3 },
+  { id: "users", label: "Usuarios", icon: UserCog },
+  { id: "settings", label: "Configuración", icon: Settings },
+] as const;
+
+function canAccessView(role: string | undefined, view: string) {
+  const roleKey = role ? ROLE_KEY_BY_NAME[role] : undefined;
+  return Boolean(roleKey && VIEW_PERMISSIONS[view]?.includes(roleKey));
+}
+
 export default function App() {
   // Navigation active view
   const [activeView, setActiveView] = useState<string>("dashboard");
@@ -84,13 +140,20 @@ export default function App() {
 
   // Authentication states
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [sessionId, setSessionId] = useState<string | null>(localStorage.getItem("figma_session"));
+  const visibleNavItems = NAV_ITEMS.filter((item) => canAccessView(currentUser?.role, item.id));
+  const [sessionId, setSessionId] = useState<string | null>(getStoredSession());
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
+
+  useEffect(() => {
+    if (currentUser && !canAccessView(currentUser.role, activeView)) {
+      setActiveView("dashboard");
+    }
+  }, [currentUser, activeView]);
 
   // Core Data States
   const [clients, setClients] = useState<Client[]>(() => {
@@ -430,8 +493,16 @@ export default function App() {
   useEffect(() => {
     if (currentUser) {
       fetchClientsFromDatabase();
-      fetchProjectsFromDatabase();
-      fetchWebProjectsFromDatabase();
+      fetchTasksFromDatabase();
+
+      if (canAccessView(currentUser.role, "projects")) fetchProjectsFromDatabase();
+      else setProjects([]);
+
+      if (canAccessView(currentUser.role, "projects_web")) fetchWebProjectsFromDatabase();
+      else setWebProjects([]);
+
+      if (canAccessView(currentUser.role, "billing")) fetchInvoicesFromDatabase();
+      else setInvoices([]);
     }
   }, [currentUser, refreshTrigger]);
 
@@ -510,6 +581,22 @@ export default function App() {
     }
   };
 
+  const fetchTasksFromDatabase = async () => {
+    if (!sessionId) return;
+    try {
+      const data = await apiFetch<{ tasks: Array<Omit<Task, "column"> & { columnName: Task["column"] }> }>("/api/tasks");
+      setTasks(data.tasks.map(({ columnName, ...task }) => ({ ...task, column: columnName })));
+    } catch (e) { console.error("Error fetching tasks", e); }
+  };
+
+  const fetchInvoicesFromDatabase = async () => {
+    if (!sessionId) return;
+    try {
+      const data = await apiFetch<{ invoices: Invoice[] }>("/api/invoices");
+      setInvoices(data.invoices.map(invoice => ({ ...invoice, amount: Number(invoice.amount) })));
+    } catch (e) { console.error("Error fetching invoices", e); }
+  };
+
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !password) {
@@ -528,7 +615,8 @@ export default function App() {
       });
 
 
-      localStorage.setItem("figma_session", data.sessionId);
+      // Backend sets refresh token in HttpOnly cookie; store only access token
+      storeSession(data.sessionId);
       setSessionId(data.sessionId);
       setCurrentUser(data.user);
       setUsername("");
@@ -540,39 +628,16 @@ export default function App() {
     }
   };
 
-  // Demo account helper to log in in one click
-  const handleQuickDemoLogin = async () => {
-    setAuthError("");
-    setAuthLoading(true);
-    try {
-      const data = await apiFetch<{ sessionId: string; user: User }>("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: "demo", password: "demo" })
-      });
-
-      localStorage.setItem("figma_session", data.sessionId);
-      setSessionId(data.sessionId);
-      setCurrentUser(data.user);
-    } catch (err: any) {
-      setAuthError(err.message);
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  // Quick login for role-based users
   const handleQuickRoleLogin = async (roleUsername: string) => {
     setAuthError("");
     setAuthLoading(true);
     try {
-      const data = await apiFetch<{ sessionId: string; user: User }>("/api/auth/login", {
+      const data = await apiFetch<{ sessionId: string; user: User }>("/api/auth/quick-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: roleUsername, password: "demo" })
+        body: JSON.stringify({ username: roleUsername })
       });
-
-      localStorage.setItem("figma_session", data.sessionId);
+      storeSession(data.sessionId);
       setSessionId(data.sessionId);
       setCurrentUser(data.user);
     } catch (err: any) {
@@ -583,7 +648,9 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("figma_session");
+    // Inform backend to revoke refresh token cookie
+    apiFetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+    clearStoredSession();
     setSessionId(null);
     setCurrentUser(null);
     setProjects([]);
@@ -817,45 +884,37 @@ export default function App() {
   };
 
   // Task helpers
-  const handleAddTask = (task: Omit<Task, "id">) => {
-    const newTask: Task = {
-      ...task,
-      id: "t_" + Date.now()
-    };
-    setTasks(prev => [...prev, newTask]);
+  const handleAddTask = async (task: Omit<Task, "id">) => {
+    try {
+      const data = await apiFetch<{ task: Task }>("/api/tasks", { method: "POST", body: JSON.stringify(task) });
+      setTasks(prev => [...prev, { ...data.task, column: data.task.column || task.column }]);
+    } catch (e) { console.error("Failed to create task", e); }
   };
 
-  const handleDeleteTask = (id: string) => {
-    setTasks(prev => prev.filter(t => t.id !== id));
+  const handleDeleteTask = async (id: string) => {
+    try { await apiFetch(`/api/tasks/${id}`, { method: "DELETE" }); setTasks(prev => prev.filter(t => t.id !== id)); }
+    catch (e) { console.error("Failed to delete task", e); }
   };
 
-  const handleUpdateTaskColumn = (id: string, column: Task["column"]) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, column } : t));
+  const handleUpdateTaskColumn = async (id: string, column: Task["column"]) => {
+    try { await apiFetch(`/api/tasks/${id}`, { method: "PATCH", body: JSON.stringify({ column }) }); setTasks(prev => prev.map(t => t.id === id ? { ...t, column } : t)); }
+    catch (e) { console.error("Failed to update task", e); }
   };
 
   // Invoice helpers
-  const handleAddInvoice = (inv: Omit<Invoice, "id">) => {
-    const newInv: Invoice = {
-      ...inv,
-      id: "inv_" + Date.now()
-    };
-    setInvoices(prev => [...prev, newInv]);
-    
-    // Auto increment customer total billing
-    setClients(prev => prev.map(c => {
-      if (c.companyName === inv.clientName) {
-        return { ...c, totalBilling: c.totalBilling + inv.amount };
-      }
-      return c;
-    }));
+  const handleAddInvoice = async (inv: Omit<Invoice, "id">) => {
+    try { const data=await apiFetch<{invoice:Invoice}>("/api/invoices",{method:"POST",body:JSON.stringify(inv)}); setInvoices(prev=>[...prev,data.invoice]); }
+    catch(e){console.error("Failed to create invoice",e);}
   };
 
-  const handleDeleteInvoice = (id: string) => {
-    setInvoices(prev => prev.filter(i => i.id !== id));
+  const handleDeleteInvoice = async (id: string) => {
+    try{await apiFetch(`/api/invoices/${id}`,{method:"DELETE"});setInvoices(prev=>prev.filter(i=>i.id!==id));}
+    catch(e){console.error("Failed to delete invoice",e);}
   };
 
-  const handleUpdateInvoiceStatus = (id: string, status: Invoice["status"]) => {
-    setInvoices(prev => prev.map(i => i.id === id ? { ...i, status } : i));
+  const handleUpdateInvoiceStatus = async (id: string, status: Invoice["status"]) => {
+    try{await apiFetch(`/api/invoices/${id}`,{method:"PATCH",body:JSON.stringify({status})});setInvoices(prev=>prev.map(i=>i.id===id?{...i,status}:i));}
+    catch(e){console.error("Failed to update invoice",e);}
   };
 
   // Link Projects view to AI workspace editor
@@ -897,10 +956,10 @@ export default function App() {
       
       {/* 1. NOT LOGGED IN AUTH SCREEN */}
       {!currentUser ? (
-        <div className="min-h-screen w-full flex flex-col lg:flex-row bg-[#f0f2f5] font-sans">
+        <div className="crm-auth min-h-[100dvh] w-full flex flex-col lg:flex-row bg-[#f0f2f5] font-sans">
           
           {/* Left Panel: Sidebar Branding */}
-          <div className="lg:w-[35%] xl:w-[30%] bg-[#080f1e] p-8 lg:p-12 flex flex-col justify-between text-left relative overflow-hidden text-white min-h-[340px] lg:min-h-screen shrink-0">
+          <div className="lg:w-[35%] xl:w-[30%] bg-[#080f1e] p-5 sm:p-8 lg:p-12 flex flex-col justify-between text-left relative overflow-hidden text-white min-h-[300px] lg:min-h-screen shrink-0">
             {/* Background geometric accents / grids / glow */}
             <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:20px_20px] opacity-10 pointer-events-none" />
             <div className="absolute bottom-0 right-0 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
@@ -956,7 +1015,7 @@ export default function App() {
 
           {/* Right Panel: Content Area with Card */}
           <div className="flex-1 flex items-center justify-center p-4 lg:p-12">
-            <div className="bg-white rounded-[2rem] p-6 lg:p-10 border border-slate-200/40 w-full max-w-[460px] shadow-xl animate-scale-up text-left">
+            <div className="crm-auth-card bg-white rounded-2xl sm:rounded-[2rem] p-5 sm:p-6 lg:p-10 border border-slate-200/40 w-full max-w-[460px] shadow-xl animate-scale-up text-left">
               <div className="mb-6">
                 <h1 className="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">Iniciar sesión</h1>
                 <p className="text-xs text-slate-400 font-semibold mt-1.5">Accede con tu cuenta corporativa</p>
@@ -988,6 +1047,8 @@ export default function App() {
                     <input
                       type={showPassword ? "text" : "password"}
                       required
+                      minLength={isLogin ? undefined : 12}
+                      maxLength={128}
                       autoComplete={isLogin ? "current-password" : "new-password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -1020,37 +1081,42 @@ export default function App() {
                   {!authLoading && <ArrowRight className="w-4 h-4" />}
                 </button>
 
-                {/* Horizontal separator with centered text */}
-                <div className="relative flex py-4 items-center">
-                  <div className="flex-grow border-t border-slate-200/60"></div>
-                  <span className="flex-shrink mx-4 text-[10px] text-slate-400 font-extrabold tracking-widest uppercase">ACCESO RÁPIDO POR ROL</span>
-                  <div className="flex-grow border-t border-slate-200/60"></div>
-                </div>
+                {import.meta.env.DEV && (
+                  <>
+                    <div className="relative flex items-center py-4">
+                      <div className="flex-grow border-t border-slate-200/60" />
+                      <span className="mx-4 flex-shrink text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+                        Acceso rápido por rol
+                      </span>
+                      <div className="flex-grow border-t border-slate-200/60" />
+                    </div>
 
-                {/* 2x2 grid of quick access buttons */}
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { username: "adriana", displayName: "Adriana", roleName: "Admin General", initials: "AG", bgColor: "bg-[#00b289]" },
-                    { username: "jorge", displayName: "Jorge", roleName: "Administración", initials: "JR", bgColor: "bg-[#7c3aed]" },
-                    { username: "carlos", displayName: "Carlos", roleName: "Gerente Dev", initials: "CM", bgColor: "bg-[#f59e0b]" },
-                    { username: "sofia", displayName: "Sofía", roleName: "Gerente Web", initials: "SR", bgColor: "bg-[#fca5a5]" }
-                  ].map((role) => (
-                    <button
-                      key={role.username}
-                      type="button"
-                      onClick={() => handleQuickRoleLogin(role.username)}
-                      className="flex items-center gap-3 p-3 bg-white hover:bg-slate-50 border border-slate-200/60 rounded-2xl text-left transition-all hover:shadow-sm active:scale-[0.97] cursor-pointer group"
-                    >
-                      <div className={`w-9 h-9 rounded-full ${role.bgColor} text-white flex items-center justify-center font-bold text-xs uppercase shrink-0 shadow-sm`}>
-                        {role.initials}
-                      </div>
-                      <div className="truncate text-left">
-                        <h4 className="text-xs font-black text-slate-800 leading-tight group-hover:text-[#1d63ff] transition-colors">{role.displayName}</h4>
-                        <p className="text-[10px] text-slate-400 font-bold tracking-tight mt-0.5">{role.roleName}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { username: "adriana", displayName: "Adriana", roleName: "Admin General", initials: "AG", bgColor: "bg-[#00b289]" },
+                        { username: "jorge", displayName: "Jorge", roleName: "Administración", initials: "JR", bgColor: "bg-[#7c3aed]" },
+                        { username: "carlos", displayName: "Carlos", roleName: "Gerente Dev", initials: "CM", bgColor: "bg-[#f59e0b]" },
+                        { username: "sofia", displayName: "Sofía", roleName: "Gerente Web", initials: "SR", bgColor: "bg-[#fca5a5]" }
+                      ].map((role) => (
+                        <button
+                          key={role.username}
+                          type="button"
+                          disabled={authLoading}
+                          onClick={() => handleQuickRoleLogin(role.username)}
+                          className="group flex items-center gap-3 rounded-2xl border border-slate-200/60 bg-white p-3 text-left transition-all hover:bg-slate-50 hover:shadow-sm active:scale-[0.97] disabled:opacity-60"
+                        >
+                          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${role.bgColor} text-xs font-bold uppercase text-white shadow-sm`}>
+                            {role.initials}
+                          </div>
+                          <div className="min-w-0 text-left">
+                            <h4 className="truncate text-xs font-black leading-tight text-slate-800 transition-colors group-hover:text-[#1d63ff]">{role.displayName}</h4>
+                            <p className="mt-0.5 truncate text-[10px] font-bold tracking-tight text-slate-400">{role.roleName}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
 
                 {/* Back to signup/login option */}
                 <div className="text-center pt-2 text-[11px] border-t border-slate-100">
@@ -1092,7 +1158,7 @@ export default function App() {
 
           {/* Persistent Left Sidebar Navigation */}
           <aside className={`
-            fixed md:sticky md:top-0 inset-y-0 left-0 z-40 w-56 bg-[#0c1427] text-slate-300 flex flex-col justify-between border-r border-slate-800/40 p-4 shrink-0 transition-transform duration-300 md:translate-x-0 h-screen overflow-y-auto
+            fixed md:sticky md:top-0 inset-y-0 left-0 z-40 w-[min(18rem,86vw)] md:w-56 bg-[#0c1427] text-slate-300 flex flex-col justify-between border-r border-slate-800/40 p-4 shrink-0 transition-transform duration-300 md:translate-x-0 h-[100dvh] overflow-y-auto
             ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
           `}>
             <div>
@@ -1117,24 +1183,7 @@ export default function App() {
 
               {/* Navigation list matching the screenshot */}
               <div className="space-y-0.5">
-                {[
-                  { id: "dashboard", label: "Dashboard", icon: LayoutGrid },
-                  { id: "clients", label: "Clientes", icon: Users },
-                  { id: "leads", label: "Prospectos", icon: UserPlus },
-                  { id: "services", label: "Servicios", icon: Layers },
-                  { id: "billing", label: "Pagos", icon: DollarSign },
-                  { id: "renewals", label: "Renovaciones", icon: RefreshCw },
-                  { id: "quotes", label: "Cotizaciones", icon: FileText },
-                  { id: "projects", label: "Proyectos Dev", icon: Code2 },
-                  { id: "projects_web", label: "Proyectos Web", icon: Globe },
-                  { id: "kanban", label: "Kanban", icon: Trello },
-                  { id: "tasks", label: "Tareas", icon: CheckSquare },
-                  { id: "staff", label: "Personal", icon: Briefcase },
-                  { id: "credentials", label: "Credenciales", icon: Key },
-                  { id: "reports", label: "Reportes", icon: BarChart3 },
-                  { id: "users", label: "Usuarios", icon: UserCog },
-                  { id: "settings", label: "Configuración", icon: Settings },
-                ].map((item) => {
+                {visibleNavItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = activeView === item.id;
                   return (
@@ -1210,7 +1259,7 @@ export default function App() {
 
           {/* Core Content Container layout */}
           <main
-            className={`flex-1 min-h-screen overflow-y-auto p-4 md:p-8 flex flex-col justify-between w-full ${
+            className={`crm-main min-w-0 flex-1 min-h-screen overflow-y-auto p-3 sm:p-4 md:p-6 xl:p-8 flex flex-col justify-between w-full ${
               activeView === "services" ||
               activeView === "leads" ||
               activeView === "clients" ||
@@ -1286,7 +1335,7 @@ export default function App() {
             </header>
             
             {/* Display Active Sub-view */}
-            <div className="flex-1 pb-12">
+            <div className="crm-content min-w-0 flex-1 pb-12">
               <Suspense fallback={
                 <div className="flex items-center justify-center min-h-[400px]">
                   <div className="flex flex-col items-center gap-3">

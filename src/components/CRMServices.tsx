@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { useServerCollection } from "../lib/useServerCollection";
 
 type BillingPeriod = "Mensual" | "Anual";
 type ServiceStatus = "Activo" | "Próximo a vencer" | "Urgente" | "Vencido" | "Suspendido";
@@ -240,20 +241,7 @@ function addPeriod(dateString: string, period: BillingPeriod) {
 }
 
 export default function CRMServices() {
-  const [services, setServices] = useState<ServiceItem[]>(() => {
-    const cached = localStorage.getItem("crm_services");
-
-    if (!cached) {
-      return DEFAULT_SERVICES;
-    }
-
-    try {
-      const parsed = JSON.parse(cached);
-      return Array.isArray(parsed) ? parsed.map(normalizeService) : DEFAULT_SERVICES;
-    } catch {
-      return DEFAULT_SERVICES;
-    }
-  });
+  const [services, setServices] = useServerCollection<ServiceItem>("services", "crm_services", DEFAULT_SERVICES.map(normalizeService));
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"Todos" | ServiceStatus>("Todos");
   const [showModal, setShowModal] = useState(false);
@@ -262,7 +250,6 @@ export default function CRMServices() {
 
   const saveServices = (nextServices: ServiceItem[]) => {
     setServices(nextServices);
-    localStorage.setItem("crm_services", JSON.stringify(nextServices));
   };
 
   const filteredServices = useMemo(() => {

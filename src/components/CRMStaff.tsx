@@ -9,6 +9,7 @@ import {
   Ban,
   CheckCircle2
 } from "lucide-react";
+import { useServerCollection } from "../lib/useServerCollection";
 
 export interface StaffMember {
   id: string;
@@ -251,22 +252,12 @@ export default function CRMStaff() {
   const [newMemberType, setNewMemberType] = useState<StaffMember["memberType"]>("Interno");
   const [newStatus, setNewStatus] = useState<StaffMember["status"]>("Activo");
 
-  const [staff, setStaff] = useState<StaffMember[]>(() => {
-    const cached = localStorage.getItem("crm_staff");
-    if (!cached) return DEFAULT_STAFF;
-
-    try {
-      return normalizeStoredStaff(JSON.parse(cached));
-    } catch {
-      return DEFAULT_STAFF;
-    }
-  });
+  const [staff, setStaff] = useServerCollection<StaffMember>("staff", "crm_staff", normalizeStoredStaff(DEFAULT_STAFF));
 
   const featuredMembers = staff.slice(0, 4);
 
   const saveStaff = (updated: StaffMember[]) => {
     setStaff(updated);
-    localStorage.setItem("crm_staff", JSON.stringify(updated));
   };
 
   const resetForm = () => {

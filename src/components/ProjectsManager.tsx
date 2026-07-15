@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { User, SavedProject } from "../types";
-import { apiFetch } from "../lib/api";
+import { apiFetch, clearStoredSession, getStoredSession, storeSession } from "../lib/api";
 import { 
   Lock, 
   User as UserIcon, 
@@ -24,7 +24,7 @@ interface ProjectsManagerProps {
 
 export default function ProjectsManager({ onLoadProjectCode, onRefreshTrigger }: ProjectsManagerProps) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [sessionId, setSessionId] = useState<string | null>(localStorage.getItem("figma_session"));
+  const [sessionId, setSessionId] = useState<string | null>(getStoredSession());
   const [projects, setProjects] = useState<SavedProject[]>([]);
   
   // Auth Form State
@@ -108,7 +108,7 @@ export default function ProjectsManager({ onLoadProjectCode, onRefreshTrigger }:
         body: JSON.stringify({ username, password }),
       });
 
-      localStorage.setItem("figma_session", data.sessionId);
+      storeSession(data.sessionId);
       setSessionId(data.sessionId);
       setCurrentUser(data.user);
       setUsername("");
@@ -121,7 +121,7 @@ export default function ProjectsManager({ onLoadProjectCode, onRefreshTrigger }:
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("figma_session");
+    clearStoredSession();
     setSessionId(null);
     setCurrentUser(null);
     setProjects([]);

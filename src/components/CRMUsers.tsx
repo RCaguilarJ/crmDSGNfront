@@ -18,7 +18,7 @@ const fallback:UserItem[]=[
  {username:"carlos",name:"Carlos Mendoza Ruiz",email:"carlos@designs.mx",role:"Gerente Dev",area:"Desarrollo",status:"Activo",initials:"CM"},
  {username:"sofia",name:"Sofía Rodríguez Vega",email:"sofia@designs.mx",role:"Gerente Web",area:"Páginas web",status:"Activo",initials:"SR"},
 ];
-const api=(url:string,init?:RequestInit)=>apiFetch<any>(url,{...init,headers:{"Content-Type":"application/json",Authorization:`Bearer ${localStorage.getItem("figma_session")||""}`,...init?.headers}});
+const api=(url:string,init?:RequestInit)=>apiFetch<any>(url,{...init,headers:{"Content-Type":"application/json",...init?.headers}});
 
 export default function CRMUsers(){
  const [users,setUsers]=useState<UserItem[]>(fallback),[modal,setModal]=useState(false),[error,setError]=useState("");

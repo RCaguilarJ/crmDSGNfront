@@ -10,6 +10,7 @@ import {
   UserPlus,
   X,
 } from "lucide-react";
+import { useServerCollection } from "../lib/useServerCollection";
 
 type LeadStage =
   | "Nuevo"
@@ -326,20 +327,7 @@ function createEmptyForm(stage: LeadStage): LeadFormState {
 }
 
 export default function CRMLeads() {
-  const [leads, setLeads] = useState<Lead[]>(() => {
-    const cached = localStorage.getItem("crm_leads");
-
-    if (!cached) {
-      return DEFAULT_LEADS;
-    }
-
-    try {
-      const parsed = JSON.parse(cached);
-      return Array.isArray(parsed) ? parsed.map(normalizeLead) : DEFAULT_LEADS;
-    } catch {
-      return DEFAULT_LEADS;
-    }
-  });
+  const [leads, setLeads] = useServerCollection<Lead>("leads", "crm_leads", DEFAULT_LEADS.map(normalizeLead));
   const [showFormModal, setShowFormModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [editingLeadId, setEditingLeadId] = useState<string | null>(null);
@@ -348,7 +336,6 @@ export default function CRMLeads() {
 
   const saveLeads = (nextLeads: Lead[]) => {
     setLeads(nextLeads);
-    localStorage.setItem("crm_leads", JSON.stringify(nextLeads));
   };
 
   const stageColumns = useMemo(
