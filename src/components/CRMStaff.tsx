@@ -244,6 +244,8 @@ const inputClassName =
 
 export default function CRMStaff() {
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [viewingMember, setViewingMember] = useState<StaffMember | null>(null);
   const [newName, setNewName] = useState("");
   const [newPosition, setNewPosition] = useState("");
   const [newEmail, setNewEmail] = useState("");
@@ -288,9 +290,26 @@ export default function CRMStaff() {
       avatarColor: avatarPalette[staff.length % avatarPalette.length]
     };
 
-    saveStaff([newMember, ...staff]);
+    if (editingId) {
+      saveStaff(staff.map(member => member.id === editingId ? { ...newMember, id: editingId, projectsCount: member.projectsCount, tasksCount: member.tasksCount, avatarColor: member.avatarColor } : member));
+    } else {
+      saveStaff([newMember, ...staff]);
+    }
     resetForm();
+    setEditingId(null);
     setShowAddModal(false);
+  };
+
+  const openEdit = (member: StaffMember) => {
+    setEditingId(member.id);
+    setNewName(normalizeText(member.name));
+    setNewPosition(normalizeText(member.position));
+    setNewEmail(normalizeText(member.email));
+    setNewPhone(normalizeText(member.phone));
+    setNewArea(member.area);
+    setNewMemberType(member.memberType);
+    setNewStatus(member.status);
+    setShowAddModal(true);
   };
 
   const handleDeleteStaff = (id: string) => {
@@ -364,7 +383,7 @@ export default function CRMStaff() {
       <div className="flex items-center justify-end">
         <button
           type="button"
-          onClick={() => setShowAddModal(true)}
+          onClick={() => { setEditingId(null); resetForm(); setShowAddModal(true); }}
           className="inline-flex items-center gap-2 rounded-xl bg-[#2563eb] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#1d4ed8]"
         >
           <Plus className="h-4 w-4" />
@@ -431,6 +450,7 @@ export default function CRMStaff() {
                     <div className="flex items-center justify-center gap-3">
                       <button
                         type="button"
+                        onClick={() => setViewingMember(member)}
                         className="text-blue-500 transition-colors hover:text-blue-600"
                         title="Ver"
                       >
@@ -438,6 +458,7 @@ export default function CRMStaff() {
                       </button>
                       <button
                         type="button"
+                        onClick={() => openEdit(member)}
                         className="text-slate-400 transition-colors hover:text-slate-600"
                         title="Editar"
                       >
@@ -476,7 +497,7 @@ export default function CRMStaff() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-[2px]">
           <div className="w-full max-w-[450px] overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.22)]">
             <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-              <h3 className="text-[22px] font-black tracking-tight text-slate-900">Nuevo miembro</h3>
+              <h3 className="text-[22px] font-black tracking-tight text-slate-900">{editingId ? "Editar miembro" : "Nuevo miembro"}</h3>
               <button
                 type="button"
                 onClick={() => {
@@ -607,10 +628,22 @@ export default function CRMStaff() {
                   type="submit"
                   className="rounded-xl bg-[#2563eb] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#1d4ed8]"
                 >
-                  Guardar
+                  {editingId ? "Guardar cambios" : "Guardar"}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {viewingMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-[2px]">
+          <div className="w-full max-w-md rounded-[22px] border border-slate-200 bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between">
+              <div><p className="text-xs font-black uppercase tracking-wider text-blue-600">Perfil del personal</p><h3 className="mt-1 text-2xl font-black text-slate-900">{normalizeText(viewingMember.name)}</h3></div>
+              <button type="button" onClick={() => setViewingMember(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-3 text-sm"><div><p className="text-xs text-slate-400">Puesto</p><p className="font-semibold text-slate-700">{normalizeText(viewingMember.position)}</p></div><div><p className="text-xs text-slate-400">Área</p><p className="font-semibold text-slate-700">{viewingMember.area}</p></div><div><p className="text-xs text-slate-400">Correo</p><p className="font-semibold text-slate-700">{normalizeText(viewingMember.email)}</p></div><div><p className="text-xs text-slate-400">Teléfono</p><p className="font-semibold text-slate-700">{normalizeText(viewingMember.phone)}</p></div><div><p className="text-xs text-slate-400">Estado</p><p className="font-semibold text-slate-700">{viewingMember.status}</p></div><div><p className="text-xs text-slate-400">Tipo</p><p className="font-semibold text-slate-700">{viewingMember.memberType}</p></div></div>
+            <div className="mt-6 flex justify-end"><button type="button" onClick={() => setViewingMember(null)} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white">Cerrar</button></div>
           </div>
         </div>
       )}

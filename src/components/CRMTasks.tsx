@@ -31,6 +31,7 @@ interface CRMTasksProps {
   projects: Array<{ name: string }>;
   onAddTask: (task: Omit<Task, "id">) => void;
   onDeleteTask: (id: string) => void;
+  onUpdateTask: (id: string, changes: Partial<Task>) => void;
   onUpdateTaskColumn: (id: string, column: Task["column"]) => void;
 }
 
@@ -136,9 +137,11 @@ export default function CRMTasks({
   projects,
   onAddTask,
   onDeleteTask,
+  onUpdateTask,
   onUpdateTaskColumn
 }: CRMTasksProps) {
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [newColumn, setNewColumn] = useState<Task["column"]>("Backlog");
@@ -171,6 +174,21 @@ export default function CRMTasks({
 
   const openForm = () => {
     resetForm();
+    setEditingTaskId(null);
+    setShowAddForm(true);
+  };
+
+  const openEditForm = (task: Task) => {
+    setEditingTaskId(task.id);
+    setNewTitle(normalizeText(task.title));
+    setNewDesc(normalizeText(task.description));
+    setNewColumn(task.column);
+    setNewPriority(task.priority);
+    setNewProjName(normalizeText(task.projectName));
+    setNewAssignee(normalizeText(task.assignee));
+    setNewCategory(getTaskCategory(task));
+    setNewStatus(getTaskStatus(task));
+    setNewDueDate("");
     setShowAddForm(true);
   };
 
@@ -192,14 +210,9 @@ export default function CRMTasks({
         ? `${newDesc.trim()} ${newDesc.trim() ? "· " : ""}${newCategory}`.trim()
         : newDesc;
 
-    onAddTask({
-      title: newTitle.trim(),
-      description: categoryHint,
-      column: mappedColumn,
-      priority: newPriority,
-      projectName: newProjName || "-",
-      assignee: newAssignee || "Carlos Mendoza"
-    });
+    const changes = { title: newTitle.trim(), description: categoryHint, column: mappedColumn, priority: newPriority, projectName: newProjName || "-", assignee: newAssignee || "Carlos Mendoza" };
+    if (editingTaskId) onUpdateTask(editingTaskId, changes);
+    else onAddTask(changes);
 
     closeForm();
   };
@@ -233,7 +246,7 @@ export default function CRMTasks({
               Volver
             </button>
             <span>/</span>
-            <span className="text-slate-900">Nueva tarea</span>
+             <span className="text-slate-900">{editingTaskId ? "Editar tarea" : "Nueva tarea"}</span>
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
@@ -250,7 +263,7 @@ export default function CRMTasks({
               className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-blue-700"
             >
               <ClipboardCheck className="h-4 w-4" />
-              Crear tarea
+               {editingTaskId ? "Guardar cambios" : "Crear tarea"}
             </button>
           </div>
         </div>
@@ -423,7 +436,7 @@ export default function CRMTasks({
               className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-blue-700"
             >
               <ClipboardCheck className="h-4 w-4" />
-              Crear tarea
+               {editingTaskId ? "Guardar cambios" : "Crear tarea"}
             </button>
           </div>
         </form>
@@ -606,6 +619,7 @@ export default function CRMTasks({
                           </span>
                           <button
                             type="button"
+                            onClick={() => openEditForm(task)}
                             className="rounded-lg p-1.5 text-blue-500 transition-colors hover:bg-blue-50"
                             title="Editar"
                           >

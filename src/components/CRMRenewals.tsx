@@ -29,11 +29,6 @@ const CALENDAR_YEAR = 2025;
 const CALENDAR_MONTH_INDEX = 0;
 const DEFAULT_SELECTED_DATE = "2025-01-03";
 
-const MONTH_LABEL = new Intl.DateTimeFormat("es-MX", {
-  month: "long",
-  year: "numeric",
-}).format(new Date(CALENDAR_YEAR, CALENDAR_MONTH_INDEX, 1));
-
 const DAY_LABELS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
 const DEFAULT_RENEWALS: RenewalItem[] = [
@@ -169,6 +164,7 @@ function formatSelectedDate(dateString: string) {
 export default function CRMRenewals() {
   const [view, setView] = useState<RenewalView>("calendar");
   const [selectedDate, setSelectedDate] = useState(DEFAULT_SELECTED_DATE);
+  const [calendarMonth, setCalendarMonth] = useState(new Date(CALENDAR_YEAR, CALENDAR_MONTH_INDEX, 1));
   const [showAddModal, setShowAddModal] = useState(false);
 
   const [newClient, setNewClient] = useState("");
@@ -267,11 +263,13 @@ export default function CRMRenewals() {
   const selectedDayRenewals = calendarItemsByDay.get(selectedDate) ?? [];
 
   const calendarCells = useMemo(() => {
-    const firstOfMonth = new Date(CALENDAR_YEAR, CALENDAR_MONTH_INDEX, 1);
+    const calendarYear = calendarMonth.getFullYear();
+    const calendarMonthIndex = calendarMonth.getMonth();
+    const firstOfMonth = new Date(calendarYear, calendarMonthIndex, 1);
     const startDay = firstOfMonth.getDay();
-    const daysInMonth = new Date(CALENDAR_YEAR, CALENDAR_MONTH_INDEX + 1, 0).getDate();
-    const daysInPrevMonth = new Date(CALENDAR_YEAR, CALENDAR_MONTH_INDEX, 0).getDate();
-    const totalCells = 35;
+    const daysInMonth = new Date(calendarYear, calendarMonthIndex + 1, 0).getDate();
+    const daysInPrevMonth = new Date(calendarYear, calendarMonthIndex, 0).getDate();
+    const totalCells = startDay + daysInMonth > 35 ? 42 : 35;
 
     return Array.from({ length: totalCells }, (_, index) => {
       const dateOffset = index - startDay + 1;
@@ -282,7 +280,7 @@ export default function CRMRenewals() {
           key: `prev-${day}`,
           day,
           isCurrentMonth: false,
-          isoDate: toIsoDate(CALENDAR_YEAR, CALENDAR_MONTH_INDEX - 1, day),
+          isoDate: toIsoDate(calendarYear, calendarMonthIndex - 1, day),
         };
       }
 
@@ -292,7 +290,7 @@ export default function CRMRenewals() {
           key: `next-${day}`,
           day,
           isCurrentMonth: false,
-          isoDate: toIsoDate(CALENDAR_YEAR, CALENDAR_MONTH_INDEX + 1, day),
+          isoDate: toIsoDate(calendarYear, calendarMonthIndex + 1, day),
         };
       }
 
@@ -300,10 +298,19 @@ export default function CRMRenewals() {
         key: `current-${dateOffset}`,
         day: dateOffset,
         isCurrentMonth: true,
-        isoDate: toIsoDate(CALENDAR_YEAR, CALENDAR_MONTH_INDEX, dateOffset),
+        isoDate: toIsoDate(calendarYear, calendarMonthIndex, dateOffset),
       };
     });
-  }, [renewals]);
+  }, [calendarMonth]);
+
+  const monthLabel = new Intl.DateTimeFormat("es-MX", { month: "long", year: "numeric" }).format(calendarMonth);
+  const moveMonth = (offset: number) => {
+    setCalendarMonth(current => {
+      const next = new Date(current.getFullYear(), current.getMonth() + offset, 1);
+      setSelectedDate(toIsoDate(next.getFullYear(), next.getMonth(), 1));
+      return next;
+    });
+  };
 
   return (
     <div className="space-y-6 animate-fade-in text-left">
@@ -360,11 +367,11 @@ export default function CRMRenewals() {
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_252px]">
           <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white px-4 py-4 shadow-[0_10px_22px_rgba(148,163,184,0.12)] md:px-5 md:py-5">
             <div className="mb-5 flex items-center justify-between px-2">
-              <button type="button" className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700">
+              <button type="button" onClick={() => moveMonth(-1)} aria-label="Mes anterior" className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700">
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <h3 className="text-[20px] font-bold capitalize text-slate-800">{MONTH_LABEL}</h3>
-              <button type="button" className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700">
+              <h3 className="text-[20px] font-bold capitalize text-slate-800">{monthLabel}</h3>
+              <button type="button" onClick={() => moveMonth(1)} aria-label="Mes siguiente" className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700">
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>

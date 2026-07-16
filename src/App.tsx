@@ -896,6 +896,13 @@ export default function App() {
     catch (e) { console.error("Failed to delete task", e); }
   };
 
+  const handleUpdateTask = async (id: string, changes: Partial<Task>) => {
+    try {
+      await apiFetch(`/api/tasks/${id}`, { method: "PATCH", body: JSON.stringify(changes) });
+      setTasks(prev => prev.map(task => task.id === id ? { ...task, ...changes } : task));
+    } catch (e) { console.error("Failed to update task", e); }
+  };
+
   const handleUpdateTaskColumn = async (id: string, column: Task["column"]) => {
     try { await apiFetch(`/api/tasks/${id}`, { method: "PATCH", body: JSON.stringify({ column }) }); setTasks(prev => prev.map(t => t.id === id ? { ...t, column } : t)); }
     catch (e) { console.error("Failed to update task", e); }
@@ -913,8 +920,13 @@ export default function App() {
   };
 
   const handleUpdateInvoiceStatus = async (id: string, status: Invoice["status"]) => {
-    try{await apiFetch(`/api/invoices/${id}`,{method:"PATCH",body:JSON.stringify({status})});setInvoices(prev=>prev.map(i=>i.id===id?{...i,status}:i));}
-    catch(e){console.error("Failed to update invoice",e);}
+    try {
+      await apiFetch(`/api/invoices/${id}`, { method: "PATCH", body: JSON.stringify({ status }) });
+      setInvoices(prev => prev.map(i => i.id === id ? { ...i, status } : i));
+    } catch (e) {
+      console.error("Failed to update invoice", e);
+      window.alert("No se pudo actualizar el pago. Verifica la conexión con la API.");
+    }
   };
 
   // Link Projects view to AI workspace editor
@@ -966,12 +978,8 @@ export default function App() {
 
             {/* Top Logo */}
             <div className="flex items-center gap-3 relative z-10">
-              <div className="w-10 h-10 rounded-2xl bg-[#1d63ff] flex items-center justify-center shadow-lg shadow-blue-500/20">
-                <Layers className="w-5 h-5 text-white" />
-              </div>
-              <div className="text-left">
-                <h2 className="text-sm font-black text-white tracking-tight leading-none">Desings</h2>
-                <span className="text-[10px] font-bold text-[#1d63ff] font-mono tracking-widest uppercase">CRM</span>
+              <div className="flex h-14 w-full max-w-[220px] items-center overflow-hidden sm:max-w-[240px] lg:h-16 lg:max-w-[250px]">
+                <img src="/desingsgdl-logo.png" alt="DesingsGDL" className="block h-auto w-full max-w-full object-contain object-left mix-blend-screen" />
               </div>
             </div>
 
@@ -1118,19 +1126,6 @@ export default function App() {
                   </>
                 )}
 
-                {/* Back to signup/login option */}
-                <div className="text-center pt-2 text-[11px] border-t border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsLogin(!isLogin);
-                      setAuthError("");
-                    }}
-                    className="text-[#1d63ff] hover:text-blue-800 font-extrabold"
-                  >
-                    {isLogin ? "¿No tienes cuenta corporativa? Regístrate gratis" : "¿Ya tienes cuenta corporativa? Inicia sesión"}
-                  </button>
-                </div>
               </form>
             </div>
           </div>
@@ -1165,14 +1160,8 @@ export default function App() {
               {/* Branding and Logo */}
               <div className="flex items-center justify-between mb-6 px-1 shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-[#1d63ff] text-white flex items-center justify-center shadow-lg shadow-[#1d63ff]/10">
-                    <Layers className="w-5 h-5" />
-                  </div>
-                  <div className="text-left">
-                    <h1 className="text-base font-black text-white tracking-tight leading-none">Desings</h1>
-                    <span className="text-[10px] font-mono font-black tracking-widest text-[#1d63ff] uppercase mt-0.5 block">
-                      CRM
-                    </span>
+                  <div className="flex h-10 w-[150px] max-w-[70%] items-center overflow-hidden">
+                    <img src="/desingsgdl-logo.png" alt="DesingsGDL" className="block h-auto w-full object-contain object-left mix-blend-screen" />
                   </div>
                 </div>
                 {/* Chevron icon as requested by the screenshot design aesthetics */}
@@ -1393,8 +1382,9 @@ export default function App() {
                     tasks={tasks} 
                     projects={projects} 
                     onAddTask={handleAddTask} 
-                    onDeleteTask={handleDeleteTask} 
-                    onUpdateTaskColumn={handleUpdateTaskColumn} 
+                     onDeleteTask={handleDeleteTask} 
+                     onUpdateTask={handleUpdateTask}
+                     onUpdateTaskColumn={handleUpdateTaskColumn} 
                   />
                 )}
                 {activeView === "billing" && (

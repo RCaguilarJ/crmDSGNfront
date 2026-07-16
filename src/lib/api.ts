@@ -147,6 +147,7 @@ function buildRequestInit(method: HttpMethod, options: ApiRequestOptions = {}): 
     const isBodyInit = body instanceof FormData || typeof body === "string" || body instanceof URLSearchParams;
 
     if (isBodyInit) {
+      if (typeof body === "string") headers.set("Content-Type", "application/json");
       init.body = body;
     } else {
       headers.set("Content-Type", "application/json");
