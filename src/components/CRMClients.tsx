@@ -30,7 +30,7 @@ interface CRMClientsProps {
   onSelectClient?: (client: Client) => void;
 }
 
-const STATUS_OPTIONS: ClientStatus[] = ["Activo", "PrÃ³ximo a vencer", "Vencido", "Suspendido"];
+const STATUS_OPTIONS: ClientStatus[] = ["Activo", "Próximo a vencer", "Vencido", "Suspendido"];
 const AVATAR_COLORS = [
   "bg-[#f59e0b]",
   "bg-[#ec4899]",
@@ -118,7 +118,7 @@ function getStatusClasses(status: ClientStatus) {
     return "bg-[#eafaf1] text-[#00b289] border-[#d2f6e4]";
   }
 
-  if (status === "PrÃ³ximo a vencer") {
+  if (status === "Próximo a vencer") {
     return "bg-[#fff8eb] text-[#f59e0b] border-[#ffe9cc]";
   }
 
@@ -269,7 +269,7 @@ export default function CRMClients({
   }
 
   async function handleDelete(id: string) {
-    if (!window.confirm("Â¿Deseas eliminar este cliente?")) {
+    if (!window.confirm("¿Deseas eliminar este cliente?")) {
       return;
     }
 
@@ -357,7 +357,7 @@ export default function CRMClients({
               </span>
             </div>
             <div>
-              <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">PrÃ³xima RenovaciÃ³n</span>
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Próxima Renovación</span>
               <span className="mt-1 flex items-center gap-1.5 font-mono text-xl font-black text-slate-800">
                 <Calendar className="h-4 w-4 text-[#f59e0b]" />
                 {formatDate(selectedClient.nextRenewal)}
@@ -370,7 +370,7 @@ export default function CRMClients({
           <div className="space-y-6 lg:col-span-4">
             <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm">
               <h3 className="mb-4 border-b border-slate-100 pb-2 text-xs font-extrabold uppercase tracking-wider text-slate-800">
-                InformaciÃ³n General
+                Información General
               </h3>
 
               <div className="space-y-4 text-xs font-semibold text-slate-600">
@@ -391,8 +391,8 @@ export default function CRMClients({
                     <Phone className="h-4 w-4" />
                   </div>
                   <div>
-                    <span className="block text-[10px] font-black uppercase text-slate-400">TelÃ©fono</span>
-                    <span className="mt-0.5 block font-mono text-slate-800">{selectedClient.phone || "Sin telÃ©fono"}</span>
+                    <span className="block text-[10px] font-black uppercase text-slate-400">Teléfono</span>
+                    <span className="mt-0.5 block font-mono text-slate-800">{selectedClient.phone || "Sin teléfono"}</span>
                   </div>
                 </div>
 
@@ -420,7 +420,7 @@ export default function CRMClients({
 
             <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-800">Notas de BitÃ¡cora</h3>
+                <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-800">Notas de Bitácora</h3>
                 <span className="text-[10px] font-mono text-slate-400">Mock sincronizable</span>
               </div>
               <textarea
@@ -505,7 +505,7 @@ export default function CRMClients({
         <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
-            <strong className="font-black">AtenciÃ³n:</strong> {error}
+            <strong className="font-black">Atención:</strong> {error}
           </div>
         </div>
       )}
@@ -554,12 +554,12 @@ export default function CRMClients({
               <tr>
                 <th className="px-5 py-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Cliente</th>
                 <th className="px-4 py-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Contacto</th>
-                <th className="px-4 py-4 text-[10px] font-black uppercase tracking-wider text-slate-400">TelÃ©fono</th>
+                <th className="px-4 py-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Teléfono</th>
                 <th className="px-4 py-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Correo</th>
                 <th className="px-4 py-4 text-center text-[10px] font-black uppercase tracking-wider text-slate-400">Servicios</th>
                 <th className="px-4 py-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Responsable</th>
                 <th className="px-4 py-4 text-center text-[10px] font-black uppercase tracking-wider text-slate-400">Estado</th>
-                <th className="px-4 py-4 text-[10px] font-black uppercase tracking-wider text-slate-400">PrÃ³x. RenovaciÃ³n</th>
+                <th className="px-4 py-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Próx. Renovación</th>
                 <th className="px-5 py-4 text-right text-[10px] font-black uppercase tracking-wider text-slate-400">Acciones</th>
               </tr>
             </thead>
@@ -576,7 +576,7 @@ export default function CRMClients({
               ) : paginatedClients.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="px-6 py-16 text-center text-xs font-bold text-slate-400">
-                    No hay clientes que coincidan con la bÃºsqueda actual.
+                    No hay clientes que coincidan con la búsqueda actual.
                   </td>
                 </tr>
               ) : (
@@ -594,7 +594,7 @@ export default function CRMClients({
                       </div>
                     </td>
                     <td className="px-4 py-4 text-slate-700">{client.contactName}</td>
-                    <td className="px-4 py-4 font-mono text-slate-600">{client.phone || "Sin telÃ©fono"}</td>
+                    <td className="px-4 py-4 font-mono text-slate-600">{client.phone || "Sin teléfono"}</td>
                     <td className="px-4 py-4 font-mono text-slate-600">{client.email}</td>
                     <td className="px-4 py-4 text-center font-black text-slate-800">{client.services}</td>
                     <td className="px-4 py-4 text-slate-700">{client.responsible || "Sin asignar"}</td>
@@ -649,7 +649,7 @@ export default function CRMClients({
               <ChevronLeft className="h-4 w-4" />
             </button>
             <span className="min-w-[90px] text-center font-black text-slate-700">
-              PÃ¡gina {currentPage} de {totalPages}
+              Página {currentPage} de {totalPages}
             </span>
             <button
               onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
@@ -724,7 +724,7 @@ function ClientModal({ form, saving, title, onClose, onSubmit, onChange }: Clien
             </div>
 
             <div>
-              <label className="mb-1.5 block text-slate-500">Correo ElectrÃ³nico *</label>
+              <label className="mb-1.5 block text-slate-500">Correo Electrónico *</label>
               <input
                 type="email"
                 required
@@ -735,7 +735,7 @@ function ClientModal({ form, saving, title, onClose, onSubmit, onChange }: Clien
             </div>
 
             <div>
-              <label className="mb-1.5 block text-slate-500">TelÃ©fono</label>
+              <label className="mb-1.5 block text-slate-500">Teléfono</label>
               <input
                 type="text"
                 value={form.phone || ""}
@@ -755,7 +755,7 @@ function ClientModal({ form, saving, title, onClose, onSubmit, onChange }: Clien
             </div>
 
             <div>
-              <label className="mb-1.5 block text-slate-500">PrÃ³xima RenovaciÃ³n</label>
+              <label className="mb-1.5 block text-slate-500">Próxima Renovación</label>
               <input
                 type="date"
                 value={form.nextRenewal || ""}

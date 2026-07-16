@@ -1,0 +1,9 @@
+RewriteEngine On
+
+# Envía las solicitudes de la API al backend Node.js administrado por PM2.
+RewriteRule ^api/(.*)$ http://127.0.0.1:3001/api/$1 [P,L]
+
+# Conserva las rutas del frontend React.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.html [L]

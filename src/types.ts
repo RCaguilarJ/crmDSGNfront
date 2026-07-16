@@ -1,7 +1,7 @@
-export type ClientStatus = "Activo" | "PrÃ³ximo a vencer" | "Vencido" | "Suspendido";
+export type ClientStatus = "Activo" | "Próximo a vencer" | "Vencido" | "Suspendido";
 export type InvoiceStatus = "Pagado" | "Pendiente" | "Vencido";
 export type TaskPriority = "Baja" | "Media" | "Alta";
-export type TaskColumn = "Backlog" | "DiseÃ±o" | "Desarrollo" | "QA" | "Entregado";
+export type TaskColumn = "Backlog" | "Diseño" | "Desarrollo" | "QA" | "Entregado";
 
 export interface Client {
   id: string;

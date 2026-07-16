@@ -114,18 +114,18 @@ function getErrorMessage(response: Response, payload: unknown) {
   }
 
   if (response.status === 401) {
-    return "Tu sesiÃ³n no es vÃ¡lida o expirÃ³. Inicia sesiÃ³n nuevamente.";
+    return "Tu sesión no es válida o expiró. Inicia sesión nuevamente.";
   }
 
   if (response.status === 404) {
-    return "No se encontrÃ³ el endpoint de la API. Verifica que el backend estÃ© corriendo en el puerto configurado.";
+    return "No se encontró el endpoint de la API. Verifica que el backend esté disponible.";
   }
 
   if (response.status >= 500) {
-    return "El servidor devolviÃ³ un error interno. Revisa la consola del backend.";
+    return "El servidor devolvió un error interno. Revisa la consola del backend.";
   }
 
-  return `La solicitud fallÃ³ con estado ${response.status}.`;
+  return `La solicitud falló con estado ${response.status}.`;
 }
 
 function buildRequestInit(method: HttpMethod, options: ApiRequestOptions = {}): RequestInit {
