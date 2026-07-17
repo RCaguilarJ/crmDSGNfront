@@ -24,6 +24,7 @@ export interface Task {
   priority: "Baja" | "Media" | "Alta";
   projectName: string;
   assignee: string;
+  createdAt?: string;
 }
 
 interface CRMTasksProps {

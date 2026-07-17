@@ -45,6 +45,7 @@ import type { WebProject } from "./components/CRMWebProjects";
 import type { Task } from "./components/CRMTasks";
 import type { Invoice } from "./components/CRMBilling";
 import { apiFetch, clearStoredSession, getStoredSession, storeSession } from "./lib/api";
+import NotificationCenter from "./components/NotificationCenter";
 
 // Lazy-loaded components for optimal initial loading
 const CRMDashboard = lazy(() => import("./components/CRMDashboard"));
@@ -125,6 +126,11 @@ export default function App() {
   // Navigation active view
   const [activeView, setActiveView] = useState<string>("dashboard");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const requestedView = new URLSearchParams(window.location.search).get("view");
+    if (requestedView && NAV_ITEMS.some((item) => item.id === requestedView)) setActiveView(requestedView);
+  }, []);
 
   // Real-time digital clock
   const [currentTime, setCurrentTime] = useState<string>("");
@@ -505,6 +511,16 @@ export default function App() {
       else setInvoices([]);
     }
   }, [currentUser, refreshTrigger]);
+
+  // Keep time-sensitive notifications current without requiring a page refresh.
+  useEffect(() => {
+    if (!currentUser) return;
+    const interval = window.setInterval(() => {
+      void fetchClientsFromDatabase();
+      void fetchTasksFromDatabase();
+    }, 60_000);
+    return () => window.clearInterval(interval);
+  }, [currentUser?.username, sessionId]);
 
   const fetchUserStatus = async () => {
     if (!sessionId) {
@@ -1298,10 +1314,12 @@ export default function App() {
                 </div>
 
                 {/* Notifications Bell */}
-                <button className="relative p-2 hover:bg-slate-100 rounded-xl transition-all cursor-pointer text-slate-500">
-                  <Bell className="w-4 h-4" />
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 animate-pulse border-2 border-white" />
-                </button>
+                <NotificationCenter
+                  clients={clients}
+                  tasks={tasks}
+                  username={currentUser.username}
+                  onNavigate={setActiveView}
+                />
 
                 {/* Divider */}
                 <div className="h-6 w-px bg-slate-200" />
