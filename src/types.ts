@@ -49,6 +49,9 @@ export interface InvoiceRecord {
   amount: number;
   status: InvoiceStatus;
   dueDate: string;
+  paymentDate?: string;
+  paymentMethod?: string;
+  isInvoiced?: boolean;
   description: string;
   createdAt?: string;
 }

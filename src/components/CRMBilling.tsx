@@ -17,6 +17,9 @@ export interface Invoice {
   amount: number;
   status: "Pagado" | "Pendiente" | "Vencido";
   dueDate: string;
+  paymentDate?: string;
+  paymentMethod?: string;
+  isInvoiced?: boolean;
   description: string;
 }
 
@@ -29,38 +32,6 @@ interface CRMBillingProps {
 }
 
 type BillingViewStatus = Invoice["status"] | "Parcial";
-
-const PAYMENT_METHOD_PATTERN = [
-  "Transferencia",
-  "—",
-  "Transferencia",
-  "—",
-  "—",
-  "Efectivo",
-  "Transferencia",
-  "—",
-  "Tarjeta",
-  "—",
-] as const;
-
-const FACTURADO_PATTERN = [true, false, true, false, false, true, true, false, false, false] as const;
-const PAID_OFFSET_PATTERN = [5, 0, 2, 0, 0, 3, 35, 0, 2, 0] as const;
-
-function subtractDays(dateString: string, days: number) {
-  if (!dateString || days <= 0) {
-    return dateString || "—";
-  }
-
-  const [year, month, day] = dateString.split("-").map(Number);
-  const date = new Date(year, (month || 1) - 1, day || 1);
-  date.setDate(date.getDate() - days);
-
-  return [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, "0"),
-    String(date.getDate()).padStart(2, "0"),
-  ].join("-");
-}
 
 function formatCurrency(val: number) {
   return new Intl.NumberFormat("es-MX", {
@@ -85,6 +56,9 @@ export default function CRMBilling({
   const [newInvAmount, setNewInvAmount] = useState("");
   const [newInvStatus, setNewInvStatus] = useState<Invoice["status"]>("Pendiente");
   const [newInvDueDate, setNewInvDueDate] = useState("");
+  const [newInvPaymentDate, setNewInvPaymentDate] = useState("");
+  const [newInvPaymentMethod, setNewInvPaymentMethod] = useState("");
+  const [newInvIsInvoiced, setNewInvIsInvoiced] = useState(false);
   const [newInvDesc, setNewInvDesc] = useState("");
 
   const [activePdfInvoice, setActivePdfInvoice] = useState<Invoice | null>(null);
@@ -101,7 +75,10 @@ export default function CRMBilling({
       clientName: newInvClient,
       amount: Number(newInvAmount),
       status: newInvStatus,
-      dueDate: newInvDueDate || new Date(Date.now() + 10 * 24 * 3600 * 1000).toISOString().split("T")[0],
+      dueDate: newInvDueDate,
+      paymentDate: newInvPaymentDate,
+      paymentMethod: newInvPaymentMethod,
+      isInvoiced: newInvIsInvoiced,
       description: newInvDesc || "Servicio de diseño y réplica a código de componentes React + Tailwind.",
     });
 
@@ -109,24 +86,22 @@ export default function CRMBilling({
     setNewInvAmount("");
     setNewInvStatus("Pendiente");
     setNewInvDueDate("");
+    setNewInvPaymentDate("");
+    setNewInvPaymentMethod("");
+    setNewInvIsInvoiced(false);
     setNewInvDesc("");
     setShowAddModal(false);
   };
 
-  const rows = invoices.map((inv, index) => {
+  const rows = invoices.map((inv) => {
     const rawStatus = inv.status as string;
     const viewStatus: BillingViewStatus = rawStatus === "Parcial" ? "Parcial" : inv.status;
-    const paidOffset = PAID_OFFSET_PATTERN[index % PAID_OFFSET_PATTERN.length];
-
     return {
       ...inv,
       viewStatus,
-      paymentDate: viewStatus === "Pagado" ? subtractDays(inv.dueDate, paidOffset || 3) : "—",
-      paymentMethod:
-        viewStatus === "Pagado" || viewStatus === "Parcial"
-          ? PAYMENT_METHOD_PATTERN[index % PAYMENT_METHOD_PATTERN.length]
-          : "—",
-      isFacturado: FACTURADO_PATTERN[index % FACTURADO_PATTERN.length],
+      paymentDate: inv.paymentDate || "—",
+      paymentMethod: inv.paymentMethod || "—",
+      isFacturado: Boolean(inv.isInvoiced),
     };
   });
 
@@ -275,7 +250,7 @@ export default function CRMBilling({
                     <td className="px-5 py-4 text-[15px] font-bold text-slate-700">{inv.clientName}</td>
                     <td className="px-4 py-4 text-[14px] font-medium text-slate-500">{inv.description}</td>
                     <td className="px-4 py-4 text-[15px] font-extrabold text-slate-700">{formatCurrency(inv.amount)}</td>
-                    <td className="px-4 py-4 text-[14px] font-medium text-slate-500">{inv.dueDate}</td>
+                    <td className="px-4 py-4 text-[14px] font-medium text-slate-500">{inv.dueDate || "—"}</td>
                     <td className="px-4 py-4 text-[14px] font-medium text-slate-400">{inv.paymentDate}</td>
                     <td className="px-4 py-4 text-[14px] font-medium text-slate-500">{inv.paymentMethod}</td>
                     <td className="px-4 py-4">
@@ -408,6 +383,47 @@ export default function CRMBilling({
                     <option value="Vencido">Vencido</option>
                   </select>
                 </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1.5 block text-stone-600">Fecha de Pago</label>
+                    <input
+                      type="date"
+                      value={newInvPaymentDate}
+                      onChange={(e) => setNewInvPaymentDate(e.target.value)}
+                      className="w-full rounded-xl border border-stone-200 bg-stone-50 p-2.5 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                    <p className="mt-1 text-[10px] font-medium text-stone-400">Independiente del vencimiento.</p>
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-stone-600">Método de Pago</label>
+                    <select
+                      value={newInvPaymentMethod}
+                      onChange={(e) => setNewInvPaymentMethod(e.target.value)}
+                      className="w-full rounded-xl border border-stone-200 bg-stone-50 p-2.5 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="">Sin especificar</option>
+                      <option value="Transferencia">Transferencia</option>
+                      <option value="Efectivo">Efectivo</option>
+                      <option value="Tarjeta">Tarjeta</option>
+                      <option value="Cheque">Cheque</option>
+                      <option value="Otro">Otro</option>
+                    </select>
+                  </div>
+                </div>
+
+                <label className="flex cursor-pointer items-center justify-between rounded-xl border border-stone-200 bg-stone-50 p-3">
+                  <div>
+                    <span className="block font-bold text-stone-700">¿Está facturado?</span>
+                    <span className="mt-0.5 block text-[10px] font-medium text-stone-400">Este dato no depende de ninguna fecha.</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={newInvIsInvoiced}
+                    onChange={(e) => setNewInvIsInvoiced(e.target.checked)}
+                    className="h-5 w-5 accent-indigo-600"
+                  />
+                </label>
 
                 <div>
                   <label className="mb-1.5 block text-stone-600">Descripción de Servicios</label>

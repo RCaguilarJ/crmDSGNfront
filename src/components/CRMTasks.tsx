@@ -29,7 +29,7 @@ export interface Task {
 
 interface CRMTasksProps {
   tasks: Task[];
-  projects: Array<{ name: string }>;
+  projects: Array<{ id: string; name: string; type: "dev" | "web" }>;
   onAddTask: (task: Omit<Task, "id">) => void;
   onDeleteTask: (id: string) => void;
   onUpdateTask: (id: string, changes: Partial<Task>) => void;
@@ -160,6 +160,9 @@ export default function CRMTasks({
     tasks.forEach((task) => values.add(normalizeText(task.assignee)));
     return Array.from(values);
   }, [tasks]);
+
+  const developmentProjects = useMemo(() => projects.filter((project) => project.type === "dev"), [projects]);
+  const webProjects = useMemo(() => projects.filter((project) => project.type === "web"), [projects]);
 
   const resetForm = () => {
     setNewTitle("");
@@ -360,13 +363,19 @@ export default function CRMTasks({
                   onChange={(e) => setNewProjName(e.target.value)}
                   className={inputClassName}
                 >
-                  <option value="">-</option>
-                  {projects.map((project) => (
-                    <option key={project.name} value={normalizeText(project.name)}>
-                      {normalizeText(project.name)}
-                    </option>
-                  ))}
+                  <option value="">Sin proyecto relacionado</option>
+                  {developmentProjects.length > 0 && <optgroup label="Proyectos Dev">
+                    {developmentProjects.map((project) => (
+                      <option key={`dev-${project.id}`} value={normalizeText(project.name)}>{normalizeText(project.name)}</option>
+                    ))}
+                  </optgroup>}
+                  {webProjects.length > 0 && <optgroup label="Proyectos Web">
+                    {webProjects.map((project) => (
+                      <option key={`web-${project.id}`} value={normalizeText(project.name)}>{normalizeText(project.name)}</option>
+                    ))}
+                  </optgroup>}
                 </select>
+                {projects.length === 0 && <p className="mt-2 text-[11px] font-medium text-amber-600">Aún no hay proyectos disponibles. Crea uno en Proyectos Dev o Proyectos Web.</p>}
               </div>
             </div>
           </section>

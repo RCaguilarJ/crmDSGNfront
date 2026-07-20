@@ -121,6 +121,23 @@ export default function NotificationCenter({ clients, tasks, username, onNavigat
     localStorage.setItem(readKey, JSON.stringify(next));
   };
 
+  const markRead = (id: string) => {
+    if (readIds.includes(id)) return;
+    const next = [...new Set([...readIds, id])].slice(-300);
+    setReadIds(next);
+    localStorage.setItem(readKey, JSON.stringify(next));
+  };
+
+  const closePanel = () => {
+    markAllRead();
+    setOpen(false);
+  };
+
+  const togglePanel = () => {
+    if (open) closePanel();
+    else setOpen(true);
+  };
+
   const requestPermission = async () => {
     if (typeof Notification === "undefined") return;
     const result = await Notification.requestPermission();
@@ -160,7 +177,7 @@ export default function NotificationCenter({ clients, tasks, username, onNavigat
       <button
         type="button"
         aria-label={`Notificaciones${unread.length ? `, ${unread.length} sin leer` : ""}`}
-        onClick={() => setOpen((value) => !value)}
+        onClick={togglePanel}
         className="relative rounded-xl p-2 text-slate-500 transition-all hover:bg-slate-100"
       >
         <Bell className="h-4 w-4" />
@@ -173,7 +190,7 @@ export default function NotificationCenter({ clients, tasks, username, onNavigat
 
       {open && (
         <>
-          <button aria-label="Cerrar notificaciones" className="fixed inset-0 z-40 cursor-default" onClick={() => setOpen(false)} />
+          <button aria-label="Cerrar notificaciones" className="fixed inset-0 z-40 cursor-default" onClick={closePanel} />
           <section className="absolute right-0 z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-2xl">
             <header className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
               <div>
@@ -202,7 +219,7 @@ export default function NotificationCenter({ clients, tasks, username, onNavigat
               ) : notifications.map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => { markAllRead(); setOpen(false); onNavigate(item.view); }}
+                  onClick={() => { markRead(item.id); setOpen(false); onNavigate(item.view); }}
                   className={`flex w-full gap-3 border-b border-slate-100 px-4 py-3 text-left hover:bg-slate-50 ${readIds.includes(item.id) ? "bg-white" : "bg-blue-50/50"}`}
                 >
                   <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${item.kind === "task" ? "bg-violet-100 text-violet-600" : "bg-amber-100 text-amber-600"}`}>

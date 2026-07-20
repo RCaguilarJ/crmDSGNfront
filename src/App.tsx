@@ -1169,7 +1169,7 @@ export default function App() {
 
           {/* Persistent Left Sidebar Navigation */}
           <aside className={`
-            fixed md:sticky md:top-0 inset-y-0 left-0 z-40 w-[min(18rem,86vw)] md:w-56 bg-[#0c1427] text-slate-300 flex flex-col justify-between border-r border-slate-800/40 p-4 shrink-0 transition-transform duration-300 md:translate-x-0 h-[100dvh] overflow-y-auto
+            fixed inset-y-0 left-0 z-40 h-[100dvh] w-[min(18rem,86vw)] overflow-y-auto bg-[#0c1427] p-4 text-slate-300 flex flex-col justify-between border-r border-slate-800/40 shrink-0 transition-transform duration-300 md:relative md:inset-auto md:h-auto md:min-h-[100dvh] md:w-56 md:self-stretch md:translate-x-0
             ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
           `}>
             <div>
@@ -1398,7 +1398,10 @@ export default function App() {
                 {activeView === "tasks" && (
                   <CRMTasks 
                     tasks={tasks} 
-                    projects={projects} 
+                    projects={[
+                      ...projects.map((project) => ({ id: project.id, name: project.name, type: "dev" as const })),
+                      ...webProjects.map((project) => ({ id: project.id, name: project.name, type: "web" as const }))
+                    ]}
                     onAddTask={handleAddTask} 
                      onDeleteTask={handleDeleteTask} 
                      onUpdateTask={handleUpdateTask}

@@ -15,6 +15,12 @@ View your app in AI Studio: https://ai.studio/apps/7d87ab26-cdff-4fcf-81b4-9f772
 
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+2. Para desarrollo local, copia `.env.development.example` como
+   `.env.development.local`. Vite carga este archivo únicamente en desarrollo y
+   Git lo ignora, por lo que el `.env` usado para producción no se modifica.
 3. Run the app:
    `npm run dev`
+
+El frontend local se conectará a `http://localhost:3000`. Para comprobar el
+build que se publicará, usa `npm run build`; este comando no carga
+`.env.development.local`.
