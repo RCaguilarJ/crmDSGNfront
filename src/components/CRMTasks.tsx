@@ -21,6 +21,7 @@ export interface Task {
   title: string;
   description: string;
   column: "Backlog" | "Diseño" | "Desarrollo" | "QA" | "Entregado";
+  status: "Pendiente" | "En proceso" | "Urgente" | "Completada";
   priority: "Baja" | "Media" | "Alta";
   projectName: string;
   assignee: string;
@@ -72,6 +73,8 @@ const getTaskSearchText = (task: Task) =>
   `${normalizeText(task.title)} ${normalizeText(task.description)} ${normalizeText(task.projectName)} ${normalizeText(task.assignee)}`.toLowerCase();
 
 const getTaskStatus = (task: Task): TaskVisualStatus => {
+  if (task.status) return task.status;
+
   const text = getTaskSearchText(task);
 
   if (task.column === "Entregado") {
@@ -208,13 +211,12 @@ export default function CRMTasks({
       return;
     }
 
-    const mappedColumn = mapFormStatusToColumn(newStatus);
     const categoryHint =
       newCategory !== "Desarrollo" && !newDesc.toLowerCase().includes(newCategory.toLowerCase())
         ? `${newDesc.trim()} ${newDesc.trim() ? "· " : ""}${newCategory}`.trim()
         : newDesc;
 
-    const changes = { title: newTitle.trim(), description: categoryHint, column: mappedColumn, priority: newPriority, projectName: newProjName || "-", assignee: newAssignee || "Carlos Mendoza" };
+    const changes = { title: newTitle.trim(), description: categoryHint, column: newColumn, status: newStatus, priority: newPriority, projectName: newProjName || "-", assignee: newAssignee || "Carlos Mendoza" };
     if (editingTaskId) onUpdateTask(editingTaskId, changes);
     else onAddTask(changes);
 
