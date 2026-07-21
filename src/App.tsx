@@ -27,7 +27,7 @@ import {
   BarChart3,
   UserCog,
   Settings,
-  LayoutGrid,
+  House,
   Search,
   Bell,
   Clock,
@@ -86,7 +86,7 @@ const VIEW_PERMISSIONS: Record<string, RoleKey[]> = {
   services: ["admin_general", "administracion"],
   billing: ["admin_general", "administracion"],
   renewals: ["admin_general", "administracion"],
-  quotes: ["admin_general", "administracion", "gerente_dev", "gerente_web"],
+  quotes: ["admin_general", "administracion"],
   projects: ["admin_general", "administracion", "gerente_dev"],
   projects_web: ["admin_general", "gerente_web"],
   kanban: ["admin_general", "administracion", "gerente_dev", "gerente_web"],
@@ -99,7 +99,7 @@ const VIEW_PERMISSIONS: Record<string, RoleKey[]> = {
 };
 
 const NAV_ITEMS = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutGrid },
+  { id: "dashboard", label: "Inicio", icon: House },
   { id: "clients", label: "Clientes", icon: Users },
   { id: "leads", label: "Prospectos", icon: UserPlus },
   { id: "services", label: "Servicios", icon: Layers },
@@ -117,9 +117,10 @@ const NAV_ITEMS = [
   { id: "settings", label: "Configuración", icon: Settings },
 ] as const;
 
-function canAccessView(role: string | undefined, view: string) {
+function canAccessView(role: string | undefined, view: string, assignedModules: string[] = [], effectivePermissions: Record<string,string[]> | null = null) {
   const roleKey = role ? ROLE_KEY_BY_NAME[role] : undefined;
-  return Boolean(roleKey && VIEW_PERMISSIONS[view]?.includes(roleKey));
+  const roleAllowed = effectivePermissions ? effectivePermissions[view]?.includes("view") : Boolean(roleKey && VIEW_PERMISSIONS[view]?.includes(roleKey));
+  return assignedModules.includes(view) || Boolean(roleAllowed);
 }
 
 export default function App() {
@@ -146,7 +147,10 @@ export default function App() {
 
   // Authentication states
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const visibleNavItems = NAV_ITEMS.filter((item) => canAccessView(currentUser?.role, item.id));
+  const [assignedModules, setAssignedModules] = useState<string[]>([]);
+  const [effectivePermissions,setEffectivePermissions] = useState<Record<string,string[]> | null>(null);
+  const visibleNavItems = NAV_ITEMS.filter((item) => item.id === "dashboard" || canAccessView(currentUser?.role, item.id, assignedModules,effectivePermissions));
+  const canPerform = (moduleName:string,action:string) => currentUser?.role === "Admin General" || (effectivePermissions ? Boolean(effectivePermissions[moduleName]?.includes(action)) : action !== "delete" && canAccessView(currentUser?.role,moduleName));
   const [sessionId, setSessionId] = useState<string | null>(getStoredSession());
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState("");
@@ -156,10 +160,10 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(false);
 
   useEffect(() => {
-    if (currentUser && !canAccessView(currentUser.role, activeView)) {
+    if (currentUser && !canAccessView(currentUser.role, activeView, assignedModules,effectivePermissions)) {
       setActiveView("dashboard");
     }
-  }, [currentUser, activeView]);
+  }, [currentUser, activeView, assignedModules,effectivePermissions]);
 
   // Core Data States
   const [clients, setClients] = useState<Client[]>(() => {
@@ -495,22 +499,40 @@ export default function App() {
     fetchUserStatus();
   }, [sessionId]);
 
+  useEffect(() => {
+    if (!currentUser || !sessionId) {
+      setAssignedModules([]);
+      setEffectivePermissions(null);
+      return;
+    }
+    const loadAssignedModules = () => apiFetch<{ modules:string[] }>("/api/access/modules")
+      .then((data) => setAssignedModules(data.modules || []))
+      .catch((error) => console.error("No se pudieron cargar los módulos asignados",error));
+    const loadPermissions = () => apiFetch<{permissions:Record<string,string[]>}>("/api/permissions/effective")
+      .then((data) => setEffectivePermissions(data.permissions || {}))
+      .catch((error) => console.error("No se pudieron cargar los permisos",error));
+    void loadAssignedModules();
+    void loadPermissions();
+    const interval = window.setInterval(()=>{void loadAssignedModules();void loadPermissions()},15000);
+    return () => window.clearInterval(interval);
+  }, [currentUser,sessionId]);
+
   // Sync projects from database
   useEffect(() => {
     if (currentUser) {
       fetchClientsFromDatabase();
       fetchTasksFromDatabase();
 
-      if (canAccessView(currentUser.role, "projects")) fetchProjectsFromDatabase();
+      if (canAccessView(currentUser.role, "projects",assignedModules,effectivePermissions)) fetchProjectsFromDatabase();
       else setProjects([]);
 
-      if (canAccessView(currentUser.role, "projects_web")) fetchWebProjectsFromDatabase();
+      if (canAccessView(currentUser.role, "projects_web",assignedModules,effectivePermissions)) fetchWebProjectsFromDatabase();
       else setWebProjects([]);
 
-      if (canAccessView(currentUser.role, "billing")) fetchInvoicesFromDatabase();
+      if (canAccessView(currentUser.role, "billing",assignedModules,effectivePermissions)) fetchInvoicesFromDatabase();
       else setInvoices([]);
     }
-  }, [currentUser, refreshTrigger]);
+  }, [currentUser, refreshTrigger, assignedModules,effectivePermissions]);
 
   // Keep time-sensitive notifications current without requiring a page refresh.
   useEffect(() => {
@@ -679,6 +701,15 @@ export default function App() {
     description: string;
     componentCode: string;
     figmaNode: string;
+    clientName?: string;
+    status?: string;
+    dueDate?: string;
+    budget?: number;
+    manager?: string;
+    devs?: string[];
+    startDate?: string;
+    progress?: number;
+    priority?: string;
   }) => {
     if (!sessionId) return;
     try {
@@ -730,10 +761,8 @@ export default function App() {
     // If logged in, save to backend db as well
     if (currentUser) {
       await handleSaveToDatabase({
-        name: proj.name,
-        description: proj.description,
-        componentCode: proj.componentCode || "",
-        figmaNode: proj.figmaNode
+        ...proj,
+        componentCode: proj.componentCode || ""
       });
     } else {
       const newProj: DesignProject = {
@@ -1424,7 +1453,7 @@ export default function App() {
                   <CRMRenewals />
                 )}
                 {activeView === "quotes" && (
-                  <CRMQuotes />
+                  <CRMQuotes canCreate={canPerform("quotes","create")} canEdit={canPerform("quotes","edit")} canDelete={canPerform("quotes","delete")} canExport={canPerform("quotes","export")} />
                 )}
                 {activeView === "staff" && (
                   <CRMStaff />

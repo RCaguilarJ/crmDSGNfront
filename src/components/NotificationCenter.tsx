@@ -6,17 +6,19 @@ import { apiFetch } from "../lib/api";
 
 type CRMNotification = {
   id: string;
+  serverId?: string;
   title: string;
   message: string;
-  view: "clients" | "tasks";
-  kind: "renewal" | "task";
+  view: string;
+  kind: "renewal" | "task" | "activity";
+  readAt?: string | null;
 };
 
 interface NotificationCenterProps {
   clients: Client[];
   tasks: Task[];
   username: string;
-  onNavigate: (view: "clients" | "tasks") => void;
+  onNavigate: (view: string) => void;
 }
 
 const USER_DISPLAY_NAMES: Record<string, string[]> = {
@@ -48,6 +50,7 @@ function base64UrlToUint8Array(value: string) {
 
 export default function NotificationCenter({ clients, tasks, username, onNavigate }: NotificationCenterProps) {
   const [open, setOpen] = useState(false);
+  const [activityNotifications, setActivityNotifications] = useState<CRMNotification[]>([]);
   const [readIds, setReadIds] = useState<string[]>([]);
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">(
     typeof Notification === "undefined" ? "unsupported" : Notification.permission
@@ -61,6 +64,36 @@ export default function NotificationCenter({ clients, tasks, username, onNavigat
     try { setReadIds(JSON.parse(localStorage.getItem(readKey) || "[]")); }
     catch { setReadIds([]); }
   }, [readKey]);
+
+  useEffect(() => {
+    let active = true;
+    const loadActivity = async () => {
+      try {
+        const data = await apiFetch<{ notifications: Array<{ id: string | number; title: string; message: string; view: string; readAt?: string | null }> }>("/api/notifications");
+        if (!active) return;
+        setActivityNotifications(data.notifications.map((item) => ({
+          id: `activity:${item.id}`,
+          serverId: String(item.id),
+          title: item.title,
+          message: item.message,
+          view: item.view,
+          kind: "activity",
+          readAt: item.readAt || null,
+        })));
+      } catch (error) {
+        console.error("No se pudieron cargar las notificaciones", error);
+      }
+    };
+    void loadActivity();
+    const interval = window.setInterval(loadActivity, 15000);
+    const onVisible = () => { if (document.visibilityState === "visible") void loadActivity(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [username]);
 
   const notifications = useMemo<CRMNotification[]>(() => {
     const today = new Date();
@@ -97,8 +130,8 @@ export default function NotificationCenter({ clients, tasks, username, onNavigat
         kind: "task" as const,
       }));
 
-    return [...taskNotifications, ...renewalNotifications];
-  }, [clients, tasks, username]);
+    return [...activityNotifications, ...taskNotifications, ...renewalNotifications];
+  }, [activityNotifications, clients, tasks, username]);
 
   useEffect(() => {
     if (!initialized.current) initialized.current = true;
@@ -106,26 +139,34 @@ export default function NotificationCenter({ clients, tasks, username, onNavigat
 
     let pushed: string[] = [];
     try { pushed = JSON.parse(localStorage.getItem(pushedKey) || "[]"); } catch { pushed = []; }
-    const fresh = notifications.filter((item) => !pushed.includes(item.id)).slice(0, 3);
+    const fresh = notifications.filter((item) => item.kind !== "activity" && !pushed.includes(item.id)).slice(0, 3);
     fresh.forEach((item) => new Notification(item.title, { body: item.message, icon: "/desingsgdl-logo.png", tag: item.id }));
     if (fresh.length) {
       localStorage.setItem(pushedKey, JSON.stringify([...new Set([...pushed, ...fresh.map((item) => item.id)])].slice(-200)));
     }
   }, [notifications, permission, pushedKey]);
 
-  const unread = notifications.filter((item) => !readIds.includes(item.id));
+  const isRead = (item: CRMNotification) => Boolean(item.readAt) || readIds.includes(item.id);
+  const unread = notifications.filter((item) => !isRead(item));
 
   const markAllRead = () => {
     const next = [...new Set([...readIds, ...notifications.map((item) => item.id)])].slice(-300);
     setReadIds(next);
     localStorage.setItem(readKey, JSON.stringify(next));
+    setActivityNotifications((items) => items.map((item) => ({ ...item, readAt:item.readAt || new Date().toISOString() })));
+    void apiFetch("/api/notifications/read-all", { method:"POST" }).catch((error) => console.error("No se pudieron marcar las notificaciones", error));
   };
 
-  const markRead = (id: string) => {
+  const markRead = (item: CRMNotification) => {
+    const { id } = item;
     if (readIds.includes(id)) return;
     const next = [...new Set([...readIds, id])].slice(-300);
     setReadIds(next);
     localStorage.setItem(readKey, JSON.stringify(next));
+    if (item.serverId && !item.readAt) {
+      setActivityNotifications((items) => items.map((current) => current.id === id ? { ...current, readAt:new Date().toISOString() } : current));
+      void apiFetch(`/api/notifications/${item.serverId}/read`, { method:"PATCH" }).catch((error) => console.error("No se pudo marcar la notificación", error));
+    }
   };
 
   const closePanel = () => {
@@ -219,11 +260,11 @@ export default function NotificationCenter({ clients, tasks, username, onNavigat
               ) : notifications.map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => { markRead(item.id); setOpen(false); onNavigate(item.view); }}
-                  className={`flex w-full gap-3 border-b border-slate-100 px-4 py-3 text-left hover:bg-slate-50 ${readIds.includes(item.id) ? "bg-white" : "bg-blue-50/50"}`}
+                  onClick={() => { markRead(item); setOpen(false); onNavigate(item.view); }}
+                  className={`flex w-full gap-3 border-b border-slate-100 px-4 py-3 text-left hover:bg-slate-50 ${isRead(item) ? "bg-white" : "bg-blue-50/50"}`}
                 >
-                  <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${item.kind === "task" ? "bg-violet-100 text-violet-600" : "bg-amber-100 text-amber-600"}`}>
-                    {item.kind === "task" ? <ClipboardCheck className="h-4 w-4" /> : <CalendarClock className="h-4 w-4" />}
+                  <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${item.kind === "task" ? "bg-violet-100 text-violet-600" : item.kind === "activity" ? "bg-blue-100 text-blue-600" : "bg-amber-100 text-amber-600"}`}>
+                    {item.kind === "task" ? <ClipboardCheck className="h-4 w-4" /> : item.kind === "activity" ? <Bell className="h-4 w-4" /> : <CalendarClock className="h-4 w-4" />}
                   </span>
                   <span className="min-w-0 flex-1">
                     <strong className="block text-[11px] text-slate-800">{item.title}</strong>

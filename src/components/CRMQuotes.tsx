@@ -36,7 +36,8 @@ export interface QuoteItem {
   items: Array<{ desc: string; qty: number; unit?: string; unitPrice: number }>;
 }
 
-export default function CRMQuotes() {
+type CRMQuotesProps={canCreate?:boolean;canEdit?:boolean;canDelete?:boolean;canExport?:boolean};
+export default function CRMQuotes({canCreate=true,canEdit=true,canDelete=false,canExport=true}:CRMQuotesProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("Todos");
   const [showAddModal, setShowAddModal] = useState(false);
@@ -324,14 +325,14 @@ export default function CRMQuotes() {
             </button>
           ))}
         </div>
-        <div className="ml-auto">
+        {canCreate && <div className="ml-auto">
           <button
             onClick={() => setShowAddModal(true)}
             className="px-3 py-2 bg-[#1d63ff] hover:bg-blue-600 text-white text-xs font-bold rounded-lg shadow-md shadow-blue-500/10"
           >
             + Nueva cotización
           </button>
-        </div>
+        </div>}
       </div>
 
       {/* List layout */}
@@ -384,7 +385,7 @@ export default function CRMQuotes() {
                         <Eye className="w-4 h-4" />
                       </button>
 
-                      {q.status !== "Aceptada" && q.status !== "Rechazada" && (
+                      {canEdit && q.status !== "Aceptada" && q.status !== "Rechazada" && (
                         <>
                           <button
                             onClick={() => handleUpdateStatus(q.id, "Aceptada")}
@@ -403,7 +404,7 @@ export default function CRMQuotes() {
                         </>
                       )}
 
-                      {q.status === "Aceptada" && (
+                      {canEdit && q.status === "Aceptada" && (
                         <button
                           onClick={() => handleRevertAcceptance(q)}
                           className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg cursor-pointer transition-colors"
@@ -414,7 +415,7 @@ export default function CRMQuotes() {
                         </button>
                       )}
 
-                      <button
+                      {canExport && <button
                         onClick={() => {
                           handleTemplatePrintQuote(q);
                         }}
@@ -422,15 +423,15 @@ export default function CRMQuotes() {
                         title="Descargar"
                       >
                         <FileSpreadsheet className="w-4 h-4" />
-                      </button>
+                      </button>}
 
-                      <button
+                      {canDelete && <button
                         onClick={() => handleDeleteQuote(q.id)}
                         className="p-1.5 text-rose-500 hover:bg-rose-50 border border-slate-200 rounded-lg cursor-pointer"
                         title="Eliminar"
                       >
                         <Trash2 className="w-4 h-4" />
-                      </button>
+                      </button>}
                     </div>
                   </td>
                 </tr>
@@ -528,7 +529,7 @@ export default function CRMQuotes() {
             </div>
 
             <div className="flex justify-end gap-2.5">
-              {viewingQuote.status === "Aceptada" && (
+              {canEdit && viewingQuote.status === "Aceptada" && (
                 <button
                   onClick={() => { if (handleRevertAcceptance(viewingQuote)) setViewingQuote(null); }}
                   className="px-4 py-2 border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl cursor-pointer text-xs font-bold flex items-center gap-1.5"
@@ -542,20 +543,20 @@ export default function CRMQuotes() {
               >
                 Cerrar vista
               </button>
-              <button
+              {canEdit && <button
                 onClick={() => openEditQuote(viewingQuote)}
                 className="px-4 py-2 border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl cursor-pointer text-xs font-bold flex items-center gap-1.5"
               >
                 <Pencil className="w-3.5 h-3.5" /> Editar cotización
-              </button>
-              <button
+              </button>}
+              {canExport && <button
                 onClick={() => {
                   handleTemplatePrintQuote(viewingQuote);
                 }}
                 className="px-4 py-2 bg-[#1d63ff] hover:bg-blue-600 text-white rounded-xl cursor-pointer text-xs font-bold flex items-center gap-1.5"
               >
                 <FileSpreadsheet className="w-3.5 h-3.5" /> Descargar PDF
-              </button>
+              </button>}
             </div>
           </div>
         </div>

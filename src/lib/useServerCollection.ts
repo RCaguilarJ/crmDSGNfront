@@ -45,7 +45,18 @@ export function useServerCollection<T>(module: string, cacheKey: string, default
     }
     const timeout = window.setTimeout(() => {
       apiFetch(`/api/module-data/${module}`, { method: "PUT", body: JSON.stringify({ data: items }) })
-        .catch((error) => console.error(`No se pudo guardar el módulo ${module}`, error));
+        .catch(async (error) => {
+          console.error(`No se pudo guardar el módulo ${module}`, error);
+          try {
+            const { data } = await apiFetch<ModuleResponse<T>>(`/api/module-data/${module}`);
+            if (Array.isArray(data)) {
+              skipNextSave.current = true;
+              setItems(data);
+            }
+          } catch (reloadError) {
+            console.error(`No se pudo restaurar el módulo ${module}`, reloadError);
+          }
+        });
     }, 250);
     return () => window.clearTimeout(timeout);
   }, [items, cacheKey, module]);
