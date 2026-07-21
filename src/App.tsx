@@ -513,7 +513,7 @@ export default function App() {
       .catch((error) => console.error("No se pudieron cargar los permisos",error));
     void loadAssignedModules();
     void loadPermissions();
-    const interval = window.setInterval(()=>{void loadAssignedModules();void loadPermissions()},15000);
+    const interval = window.setInterval(()=>{void loadAssignedModules();void loadPermissions()},60000);
     return () => window.clearInterval(interval);
   }, [currentUser,sessionId]);
 

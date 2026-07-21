@@ -426,7 +426,7 @@ export default function CRMClients({
               <textarea
                 className="h-32 w-full resize-none rounded-2xl border border-slate-100 bg-slate-50 p-3 text-xs font-semibold leading-relaxed text-slate-700 focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-[#1d63ff]/5"
                 placeholder="Agregar notas internas del cliente..."
-                defaultValue={`Cliente sincronizado desde MySQL. Responsable actual: ${selectedClient.responsible || "Sin asignar"}.`}
+                defaultValue={`Responsable actual: ${selectedClient.responsible || "Sin asignar"}.`}
               />
             </div>
           </div>
@@ -489,7 +489,6 @@ export default function CRMClients({
             <Users className="h-5 w-5 text-[#1d63ff]" />
             Clientes en Sistema
           </h2>
-          <p className="text-xs text-slate-500">Listado conectado al backend Express + MySQL.</p>
         </div>
 
         <button
